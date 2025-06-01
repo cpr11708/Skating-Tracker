@@ -1,0 +1,608 @@
+// Theme switching functionality
+const themeButtons = document.querySelectorAll('.theme-btn');
+
+themeButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const theme = button.dataset.theme;
+        document.body.dataset.theme = theme;
+        
+        // Update active button state
+        themeButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+    });
+});
+
+// Store training sessions in localStorage
+let trainingSessions = [];
+
+// DOM Elements
+const trainingForm = document.getElementById('training-form');
+const sessionsList = document.getElementById('sessions-list');
+const totalHoursElement = document.getElementById('total-hours');
+const weeklyHoursElement = document.getElementById('weekly-hours');
+const monthlyHoursElement = document.getElementById('monthly-hours');
+
+// Set today's date as default
+function getLocalDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+document.getElementById('date').value = getLocalDateString();
+
+// Global state
+let selectedFocusAreas = [];
+let selectedCoach = null;
+let currentSessionType = null;
+let currentIceType = null;
+
+// Debug function
+function debug(message) {
+    console.log(message);
+    const debugDiv = document.createElement('div');
+    debugDiv.className = 'debug-message';
+    debugDiv.textContent = message;
+    document.body.appendChild(debugDiv);
+    setTimeout(() => debugDiv.remove(), 3000);
+}
+
+// Initialize all event listeners
+function initializeEventListeners() {
+    console.log('Initializing event listeners...');
+
+    // Session type buttons
+    const practiceBtn = document.querySelector('.session-btn[data-type="practice"]');
+    const lessonBtn = document.querySelector('.session-btn[data-type="lesson"]');
+
+    console.log('Practice button:', practiceBtn);
+    console.log('Lesson button:', lessonBtn);
+
+    if (!practiceBtn || !lessonBtn) {
+        console.error('Could not find session type buttons');
+        return;
+    }
+
+    // Practice button click handler
+    practiceBtn.onclick = function(e) {
+        console.log('Practice button clicked');
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Visual feedback
+        this.classList.add('selected');
+        lessonBtn.classList.remove('selected');
+        
+        // Update state
+        currentSessionType = 'practice';
+        
+        // Show ice type selection
+        const iceTypeSelection = document.querySelector('.ice-type-selection');
+        iceTypeSelection.style.display = 'block';
+        
+        // Hide other sections
+        document.querySelector('.coach-selection').style.display = 'none';
+        document.querySelector('.session-details').style.display = 'none';
+        
+        debug('Practice selected - showing ice type options');
+    };
+
+    // Lesson button click handler
+    lessonBtn.onclick = function(e) {
+        console.log('Lesson button clicked');
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Visual feedback
+        this.classList.add('selected');
+        practiceBtn.classList.remove('selected');
+        
+        // Update state
+        currentSessionType = 'lesson';
+        
+        // Show ice type selection
+        const iceTypeSelection = document.querySelector('.ice-type-selection');
+        iceTypeSelection.style.display = 'block';
+        
+        // Hide other sections
+        document.querySelector('.coach-selection').style.display = 'none';
+        document.querySelector('.session-details').style.display = 'none';
+        
+        debug('Lesson selected - showing ice type options');
+    };
+
+    // Ice type buttons
+    const onIceBtn = document.querySelector('.ice-btn[data-ice="on"]');
+    const offIceBtn = document.querySelector('.ice-btn[data-ice="off"]');
+
+    console.log('On Ice button:', onIceBtn);
+    console.log('Off Ice button:', offIceBtn);
+
+    if (!onIceBtn || !offIceBtn) {
+        console.error('Could not find ice type buttons');
+        return;
+    }
+
+    // On Ice button click handler
+    onIceBtn.onclick = function(e) {
+        console.log('On Ice button clicked');
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Visual feedback
+        this.classList.add('selected');
+        offIceBtn.classList.remove('selected');
+        
+        // Update state
+        currentIceType = 'on';
+        
+        // Handle display based on session type
+        if (currentSessionType === 'lesson') {
+            document.querySelector('.coach-selection').style.display = 'block';
+            if (selectedCoach) {
+                document.querySelector('.session-details').style.display = 'block';
+            } else {
+                document.querySelector('.session-details').style.display = 'none';
+            }
+        } else {
+            document.querySelector('.coach-selection').style.display = 'none';
+            document.querySelector('.session-details').style.display = 'block';
+        }
+        
+        debug('On Ice selected');
+    };
+
+    // Off Ice button click handler
+    offIceBtn.onclick = function(e) {
+        console.log('Off Ice button clicked');
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Visual feedback
+        this.classList.add('selected');
+        onIceBtn.classList.remove('selected');
+        
+        // Update state
+        currentIceType = 'off';
+        
+        // Handle display based on session type
+        if (currentSessionType === 'lesson') {
+            document.querySelector('.coach-selection').style.display = 'block';
+            if (selectedCoach) {
+                document.querySelector('.session-details').style.display = 'block';
+            } else {
+                document.querySelector('.session-details').style.display = 'none';
+            }
+        } else {
+            document.querySelector('.coach-selection').style.display = 'none';
+            document.querySelector('.session-details').style.display = 'block';
+        }
+        
+        debug('Off Ice selected');
+    };
+
+    // Coach buttons (single-select)
+    const coachBtns = document.querySelectorAll('.coach-btn');
+    coachBtns.forEach(btn => {
+        btn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            // Deselect all
+            coachBtns.forEach(b => b.classList.remove('selected'));
+            // Select this one
+            btn.classList.add('selected');
+            selectedCoach = btn.dataset.coach;
+            // Show session details if a coach is selected
+            if (selectedCoach) {
+                document.querySelector('.session-details').style.display = 'block';
+            } else {
+                document.querySelector('.session-details').style.display = 'none';
+            }
+        };
+    });
+
+    // Focus area buttons (multi-select)
+    const focusBtns = document.querySelectorAll('.focus-btn');
+    focusBtns.forEach(btn => {
+        btn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const focus = btn.dataset.focus;
+            if (selectedFocusAreas.includes(focus)) {
+                selectedFocusAreas = selectedFocusAreas.filter(f => f !== focus);
+                btn.classList.remove('selected');
+            } else {
+                selectedFocusAreas.push(focus);
+                btn.classList.add('selected');
+            }
+        };
+    });
+
+    console.log('Event listeners initialized');
+}
+
+// --- Supabase Setup ---
+const SUPABASE_URL = 'https://cxvoxwdidtzraeeeaiwj.supabase.co'; // TODO: Replace with your Supabase project URL
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4dm94d2RpZHR6cmFlZWVhaXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc4NzY5ODMsImV4cCI6MjA2MzQ1Mjk4M30.ahn4_75BGDP8eqRtvheLhii_NQgqQMI9AStHbGqPXrU'; // TODO: Replace with your Supabase anon key
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// --- Auth UI Logic ---
+const loginBtn = document.getElementById('login-btn');
+const signupBtn = document.getElementById('signup-btn');
+const logoutBtn = document.getElementById('logout-btn');
+const authMessage = document.getElementById('auth-message');
+const authSection = document.getElementById('auth-section');
+const appContainer = document.querySelector('.container');
+const accountMenu = document.getElementById('account-menu');
+const accountEmail = document.getElementById('account-email');
+const headerLogoutBtn = document.getElementById('header-logout-btn');
+
+loginBtn.onclick = async () => {
+  const email = document.getElementById('auth-email').value;
+  const password = document.getElementById('auth-password').value;
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  authMessage.textContent = error ? error.message : 'Logged in!';
+  checkAuth();
+};
+
+signupBtn.onclick = async () => {
+  const email = document.getElementById('auth-email').value;
+  const password = document.getElementById('auth-password').value;
+  const { error } = await supabase.auth.signUp({ email, password });
+  authMessage.textContent = error ? error.message : 'Check your email for confirmation!';
+};
+
+headerLogoutBtn.onclick = async () => {
+  await supabase.auth.signOut();
+  authMessage.textContent = 'Logged out!';
+  checkAuth();
+};
+
+async function checkAuth() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    authSection.style.display = 'none';
+    appContainer.style.display = '';
+    accountMenu.style.display = '';
+    accountEmail.textContent = user.email;
+    await fetchSessionsForUser();
+  } else {
+    authSection.style.display = '';
+    appContainer.style.display = 'none';
+    accountMenu.style.display = 'none';
+    accountEmail.textContent = '';
+    trainingSessions = [];
+    updateUI();
+  }
+}
+
+checkAuth();
+
+// --- Fetch and display sessions for the logged-in user ---
+async function fetchSessionsForUser() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    trainingSessions = [];
+    updateUI();
+    return;
+  }
+  const { data, error } = await supabase
+    .from('training_sessions')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('date', { ascending: false });
+  if (error) {
+    debug('Error loading sessions: ' + error.message);
+    trainingSessions = [];
+  } else {
+    trainingSessions = data || [];
+  }
+  updateUI();
+}
+
+// --- Save session to Supabase ---
+document.getElementById('training-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    debug('Form submitted');
+    if (!currentSessionType || !currentIceType) {
+        alert('Please select both session type and ice type');
+        return;
+    }
+    if (currentSessionType === 'lesson' && !selectedCoach) {
+        alert('Please select a coach for the lesson');
+        return;
+    }
+    // Use selectedFocusAreas for focus
+    const focus = [...selectedFocusAreas];
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        alert('You must be logged in to log a session.');
+        return;
+    }
+    const session = {
+        user_id: user.id,
+        date: document.getElementById('date').value,
+        type: `${currentIceType}-ice-${currentSessionType}`,
+        duration: parseInt(document.getElementById('duration').value),
+        focus,
+        notes: document.getElementById('notes').value,
+        coaches: currentSessionType === 'lesson' ? [selectedCoach] : null
+    };
+    const { error } = await supabase.from('training_sessions').insert([session]);
+    if (error) {
+        debug('Error saving session: ' + error.message);
+        return;
+    }
+    await fetchSessionsForUser();
+    resetForm();
+});
+
+function resetForm() {
+    document.getElementById('training-form').reset();
+    document.getElementById('date').value = getLocalDateString();
+    document.querySelectorAll('.session-btn, .ice-btn, .coach-btn, .focus-btn').forEach(btn => btn.classList.remove('selected'));
+    document.querySelector('.ice-type-selection').style.display = 'none';
+    document.querySelector('.coach-selection').style.display = 'none';
+    document.querySelector('.session-details').style.display = 'none';
+    currentSessionType = null;
+    currentIceType = null;
+    selectedCoach = null;
+    selectedFocusAreas = [];
+}
+
+// --- Update UI to use Supabase data ---
+function updateSessionsList() {
+    sessionsList.innerHTML = '';
+    const sortedSessions = [...trainingSessions].sort((a, b) => 
+        new Date(b.date) - new Date(a.date)
+    );
+    sortedSessions.forEach(session => {
+        const sessionElement = document.createElement('div');
+        sessionElement.className = 'session-item';
+        const date = new Date(session.date).toLocaleDateString();
+        const durationMinutes = session.duration;
+        let durationDisplay = '';
+        if (durationMinutes < 60) {
+            durationDisplay = `${durationMinutes} minute${durationMinutes === 1 ? '' : 's'}`;
+        } else {
+            const hours = Math.floor(durationMinutes / 60);
+            const minutes = durationMinutes % 60;
+            if (minutes === 0) {
+                durationDisplay = `${hours} hour${hours === 1 ? '' : 's'}`;
+            } else {
+                durationDisplay = `${hours} hour${hours === 1 ? '' : 's'} ${minutes} minute${minutes === 1 ? '' : 's'}`;
+            }
+        }
+        let sessionTypeParts = session.type.split('-');
+        let iceLabel = sessionTypeParts[0] === 'on' ? 'On Ice' : 'Off Ice';
+        let isPractice = sessionTypeParts[2] === 'practice';
+        const practiceTag = isPractice ? `<div class="coach-tags"><span class="coach-tag">Practice</span></div>` : '';
+        sessionElement.innerHTML = `
+            <div class="session-item-main">
+                <div class="session-title-row">
+                    <h3>${iceLabel}</h3>
+                    <button class="delete-session-btn" data-id="${session.id}" title="Delete session" tabindex="-1">
+                        <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="1.3" y="4.5" width="11.4" height="11.5" rx="2" fill="#e74c3c"/>
+                            <rect x="3.5" y="7.5" width="1.4" height="6.5" rx="0.7" fill="#fff"/>
+                            <rect x="9.1" y="7.5" width="1.4" height="6.5" rx="0.7" fill="#fff"/>
+                            <rect x="0.3" y="2" width="13.4" height="2.5" rx="1.2" fill="#e74c3c"/>
+                            <rect x="5.2" y="0.7" width="3.6" height="1.1" rx="0.5" fill="#e74c3c"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="session-meta">
+                    <span>Date: ${date}</span>
+                    <span>Duration: ${durationDisplay}</span>
+                </div>
+                <p>${session.notes || 'No notes'}</p>
+            </div>
+            <div class="session-item-meta">
+                ${session.coaches && session.coaches.length ? 
+                    `<div class="coach-tags">
+                        ${session.coaches.map(coach => 
+                            `<span class="coach-tag">Coach: ${coach.charAt(0).toUpperCase() + coach.slice(1)}</span>`
+                        ).join('')}
+                    </div>` : 
+                    ''}
+                ${practiceTag}
+                <div class="focus-tags">
+                    ${session.focus.map(area => 
+                        `<span class="focus-tag">${area.charAt(0).toUpperCase() + area.slice(1)}</span>`
+                    ).join('')}
+                </div>
+            </div>
+        `;
+        sessionsList.appendChild(sessionElement);
+    });
+}
+
+function updateStats() {
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const totalHours = trainingSessions.reduce((sum, session) => 
+        sum + session.duration / 60, 0
+    );
+    const weeklyHours = trainingSessions
+        .filter(session => new Date(session.date) >= weekStart)
+        .reduce((sum, session) => sum + session.duration / 60, 0);
+    const monthlyHours = trainingSessions
+        .filter(session => new Date(session.date) >= monthStart)
+        .reduce((sum, session) => sum + session.duration / 60, 0);
+    totalHoursElement.textContent = totalHours.toFixed(1);
+    weeklyHoursElement.textContent = weeklyHours.toFixed(1);
+    monthlyHoursElement.textContent = monthlyHours.toFixed(1);
+}
+
+function updateUI() {
+    updateSessionsList();
+    updateStats();
+}
+
+// Initialize everything when the page loads
+window.onload = function() {
+    console.log('Page loaded - initializing...');
+    initializeEventListeners();
+    updateUI();
+    console.log('Initialization complete');
+};
+
+// --- Delete session logic ---
+sessionsList.addEventListener('click', async function(e) {
+    const btn = e.target.closest('.delete-session-btn');
+    if (btn) {
+        const sessionId = btn.getAttribute('data-id');
+        if (!sessionId) return;
+        if (!confirm('Are you sure you want to delete this session?')) return;
+        const { error } = await supabase.from('training_sessions').delete().eq('id', sessionId);
+        if (error) {
+            debug('Error deleting session: ' + error.message);
+            return;
+        }
+        await fetchSessionsForUser();
+    }
+});
+
+// --- Edit session modal logic ---
+const editSessionModal = document.getElementById('edit-session-modal');
+const closeEditModalBtn = document.getElementById('close-edit-modal');
+const editSessionForm = document.getElementById('edit-session-form');
+const editDate = document.getElementById('edit-date');
+const editDuration = document.getElementById('edit-duration');
+const editNotes = document.getElementById('edit-notes');
+const editFocusGroup = document.getElementById('edit-focus-group');
+const editCoachGroup = document.getElementById('edit-coach-group');
+let editingSessionId = null;
+let editingSessionType = null;
+let editingSessionIce = null;
+let editingSelectedCoach = null;
+let editingSelectedFocus = [];
+
+// Open modal on session card click (not delete button)
+sessionsList.addEventListener('click', function(e) {
+    const btn = e.target.closest('.delete-session-btn');
+    if (btn) return; // handled by delete logic
+    const card = e.target.closest('.session-item');
+    if (!card) return;
+    // Find session by id (from delete button or from order)
+    let sessionId = null;
+    const delBtn = card.querySelector('.delete-session-btn');
+    if (delBtn) sessionId = delBtn.getAttribute('data-id');
+    if (!sessionId) return;
+    const session = trainingSessions.find(s => s.id === sessionId);
+    if (!session) return;
+    // Fill modal fields
+    editingSessionId = session.id;
+    const typeParts = session.type.split('-');
+    editingSessionType = typeParts[2];
+    editingSessionIce = typeParts[0];
+    editDate.value = session.date;
+    editDuration.value = session.duration;
+    editNotes.value = session.notes || '';
+    // Focus areas
+    editingSelectedFocus = Array.isArray(session.focus) ? [...session.focus] : [];
+    editFocusGroup.querySelectorAll('.focus-btn').forEach(btn => {
+        if (editingSelectedFocus.includes(btn.dataset.focus)) {
+            btn.classList.add('selected');
+        } else {
+            btn.classList.remove('selected');
+        }
+    });
+    // Coach
+    if (editingSessionType === 'lesson') {
+        editCoachGroup.style.display = '';
+        editingSelectedCoach = session.coaches && session.coaches.length ? session.coaches[0] : null;
+        editCoachGroup.querySelectorAll('.coach-btn').forEach(btn => {
+            if (btn.dataset.coach === editingSelectedCoach) {
+                btn.classList.add('selected');
+            } else {
+                btn.classList.remove('selected');
+            }
+        });
+    } else {
+        editCoachGroup.style.display = 'none';
+        editingSelectedCoach = null;
+        editCoachGroup.querySelectorAll('.coach-btn').forEach(btn => btn.classList.remove('selected'));
+    }
+    // Show modal
+    editSessionModal.style.display = 'flex';
+});
+
+// Modal focus area selection
+editFocusGroup.querySelectorAll('.focus-btn').forEach(btn => {
+    btn.onclick = function(e) {
+        e.preventDefault();
+        btn.classList.toggle('selected');
+    };
+});
+// Modal coach selection
+editCoachGroup.querySelectorAll('.coach-btn').forEach(btn => {
+    btn.onclick = function(e) {
+        e.preventDefault();
+        editCoachGroup.querySelectorAll('.coach-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        editingSelectedCoach = btn.dataset.coach;
+    };
+});
+// Close modal
+function closeEditModal() {
+    editSessionModal.style.display = 'none';
+    editingSessionId = null;
+    editingSessionType = null;
+    editingSessionIce = null;
+    editingSelectedCoach = null;
+    editingSelectedFocus = [];
+}
+closeEditModalBtn.onclick = closeEditModal;
+document.getElementById('cancel-edit-session').onclick = closeEditModal;
+// Save edits
+editSessionForm.onsubmit = async function(e) {
+    e.preventDefault();
+    if (!editingSessionId) return;
+    // Always read selected focus areas from DOM
+    const focus = Array.from(editFocusGroup.querySelectorAll('.focus-btn.selected')).map(btn => btn.dataset.focus);
+    // Always read selected coach from DOM
+    let coach = null;
+    if (editingSessionType === 'lesson') {
+        const selectedCoachBtn = editCoachGroup.querySelector('.coach-btn.selected');
+        coach = selectedCoachBtn ? selectedCoachBtn.dataset.coach : null;
+        if (!coach) {
+            alert('Please select a coach for the lesson');
+            return;
+        }
+    }
+    const updates = {
+        date: editDate.value,
+        duration: parseInt(editDuration.value),
+        notes: editNotes.value,
+        focus: focus
+    };
+    if (editingSessionType === 'lesson') {
+        updates.coaches = [coach];
+    } else {
+        updates.coaches = null;
+    }
+    const { error } = await supabase.from('training_sessions').update(updates).eq('id', editingSessionId);
+    if (error) {
+        debug('Error updating session: ' + error.message);
+        return;
+    }
+    closeEditModal();
+    await fetchSessionsForUser();
+};
+
+document.getElementById('delete-edit-session').onclick = async function() {
+    if (!editingSessionId) return;
+    if (!confirm('Are you sure you want to delete this session?')) return;
+    const { error } = await supabase.from('training_sessions').delete().eq('id', editingSessionId);
+    if (error) {
+        debug('Error deleting session: ' + error.message);
+        return;
+    }
+    closeEditModal();
+    await fetchSessionsForUser();
+}; 

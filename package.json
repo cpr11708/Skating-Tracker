@@ -1,0 +1,11 @@
+{
+  "name": "demo-web-page",
+  "version": "1.0.0",
+  "description": "A simple demo web page",
+  "scripts": {
+    "start": "live-server"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+} 
