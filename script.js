@@ -354,6 +354,7 @@ function resetForm() {
 
 // --- Update UI to use Supabase data ---
 function updateSessionsList() {
+    if (!sessionsList) return;
     sessionsList.innerHTML = '';
     const sortedSessions = [...trainingSessions].sort((a, b) => 
         new Date(b.date) - new Date(a.date)
@@ -436,6 +437,15 @@ function updateStats() {
     totalHoursElement.textContent = totalHours.toFixed(1);
     weeklyHoursElement.textContent = weeklyHours.toFixed(1);
     monthlyHoursElement.textContent = monthlyHours.toFixed(1);
+    // Update home page stats
+    const homeTotal = document.getElementById('home-total-hours');
+    const homeWeekly = document.getElementById('home-weekly-hours');
+    const homeMonthly = document.getElementById('home-monthly-hours');
+    if (homeTotal && homeWeekly && homeMonthly) {
+        homeTotal.textContent = totalHours.toFixed(1);
+        homeWeekly.textContent = weeklyHours.toFixed(1);
+        homeMonthly.textContent = monthlyHours.toFixed(1);
+    }
 }
 
 function updateUI() {
@@ -449,6 +459,26 @@ window.onload = function() {
     initializeEventListeners();
     updateUI();
     console.log('Initialization complete');
+
+    // Secret Cat Modal logic
+    const pawBtn = document.getElementById('secret-paw');
+    const catModal = document.getElementById('cat-modal');
+    const closeCatModal = document.getElementById('close-cat-modal');
+
+    if (pawBtn && catModal && closeCatModal) {
+      pawBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        catModal.style.display = 'flex';
+      });
+      closeCatModal.addEventListener('click', (e) => {
+        catModal.style.display = 'none';
+      });
+      catModal.addEventListener('click', (e) => {
+        if (e.target === catModal) {
+          catModal.style.display = 'none';
+        }
+      });
+    }
 };
 
 // --- Delete session logic ---
@@ -605,4 +635,125 @@ document.getElementById('delete-edit-session').onclick = async function() {
     }
     closeEditModal();
     await fetchSessionsForUser();
-}; 
+};
+
+// --- Mobile Nav Logic ---
+const mobileNav = document.getElementById('mobile-nav');
+const mobileNavBtns = mobileNav ? mobileNav.querySelectorAll('.mobile-nav-btn') : [];
+const homeContainer = document.querySelector('.home-container');
+const accountContainer = document.querySelector('.account-container');
+
+function setInitialView() {
+  if (window.innerWidth <= 600) {
+    if (homeContainer) homeContainer.style.display = '';
+    if (appContainer) appContainer.style.display = 'none';
+    if (accountContainer) accountContainer.style.display = 'none';
+  } else {
+    if (homeContainer) homeContainer.style.display = 'none';
+    if (appContainer) appContainer.style.display = '';
+    if (accountContainer) accountContainer.style.display = 'none';
+  }
+}
+setInitialView();
+window.addEventListener('resize', setInitialView);
+
+function showHome() {
+  if (homeContainer) homeContainer.style.display = '';
+  if (appContainer) appContainer.style.display = 'none';
+  if (accountContainer) accountContainer.style.display = 'none';
+}
+function showMain() {
+  if (homeContainer) homeContainer.style.display = 'none';
+  if (appContainer) appContainer.style.display = '';
+  if (accountContainer) accountContainer.style.display = 'none';
+}
+function showAccount() {
+  if (homeContainer) homeContainer.style.display = 'none';
+  if (appContainer) appContainer.style.display = 'none';
+  if (accountContainer) accountContainer.style.display = '';
+}
+if (mobileNavBtns.length === 3) {
+  mobileNavBtns[0].onclick = function() { console.log('Home clicked'); showHome(); };
+  mobileNavBtns[1].onclick = function() { console.log('Main clicked'); showMain(); };
+  mobileNavBtns[2].onclick = function() { console.log('Account clicked'); showAccount(); };
+}
+
+// On login, show home page by default on mobile
+const originalCheckAuth = checkAuth;
+checkAuth = async function() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    authSection.style.display = 'none';
+    appContainer.style.display = '';
+    accountMenu.style.display = '';
+    accountEmail.textContent = user.email;
+    await fetchSessionsForUser();
+    if (window.innerWidth <= 600) {
+      showHome();
+    }
+  } else {
+    authSection.style.display = '';
+    appContainer.style.display = 'none';
+    accountMenu.style.display = 'none';
+    accountEmail.textContent = '';
+    trainingSessions = [];
+    updateUI();
+  }
+};
+
+checkAuth();
+
+// Update home page stats as well
+const originalUpdateStats = updateStats;
+updateStats = function() {
+  originalUpdateStats();
+  // Update home page stats
+  const homeTotal = document.getElementById('home-total-hours');
+  const homeWeekly = document.getElementById('home-weekly-hours');
+  const homeMonthly = document.getElementById('home-monthly-hours');
+  if (homeTotal && homeWeekly && homeMonthly) {
+    homeTotal.textContent = totalHoursElement.textContent;
+    homeWeekly.textContent = weeklyHoursElement.textContent;
+    homeMonthly.textContent = monthlyHoursElement.textContent;
+  }
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileNav = document.getElementById('mobile-nav');
+    const mobileNavBtns = mobileNav ? mobileNav.querySelectorAll('.mobile-nav-btn') : [];
+    const homeContainer = document.querySelector('.home-container');
+    const accountContainer = document.querySelector('.account-container');
+    const appContainer = document.querySelector('.container');
+  
+    function showHome() {
+      if (homeContainer) homeContainer.style.display = '';
+      if (appContainer) appContainer.style.display = 'none';
+      if (accountContainer) accountContainer.style.display = 'none';
+    }
+    function showMain() {
+      if (homeContainer) homeContainer.style.display = 'none';
+      if (appContainer) appContainer.style.display = '';
+      if (accountContainer) accountContainer.style.display = 'none';
+    }
+    function showAccount() {
+      if (homeContainer) homeContainer.style.display = 'none';
+      if (appContainer) appContainer.style.display = 'none';
+      if (accountContainer) accountContainer.style.display = '';
+    }
+  
+    function setInitialView() {
+      if (window.innerWidth <= 600) {
+        showHome();
+      } else {
+        showMain();
+      }
+    }
+    setInitialView();
+    window.addEventListener('resize', setInitialView);
+  
+    if (mobileNavBtns.length === 3) {
+      mobileNavBtns[0].onclick = function() { console.log('Home clicked'); showHome(); };
+      mobileNavBtns[1].onclick = function() { console.log('Main clicked'); showMain(); };
+      mobileNavBtns[2].onclick = function() { console.log('Account clicked'); showAccount(); };
+    }
+  });
