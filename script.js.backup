@@ -268,7 +268,6 @@ async function checkAuth() {
     accountMenu.style.display = '';
     accountEmail.textContent = user.email;
     await fetchSessionsForUser();
-    console.log("About to call resetForm...");
   } else {
     authSection.style.display = '';
     appContainer.style.display = 'none';
@@ -337,38 +336,20 @@ document.getElementById('training-form').addEventListener('submit', async functi
         return;
     }
     await fetchSessionsForUser();
-    console.log("About to call resetForm...");
     resetForm();
-    console.log("resetForm called successfully");
 });
 
 function resetForm() {
-    // Clear form fields
+    document.getElementById('training-form').reset();
     document.getElementById('date').value = getLocalDateString();
-    document.getElementById('duration').value = '';
-    document.getElementById('notes').value = '';
-
-    // Remove selected class from all buttons
-    document.querySelectorAll('.session-btn, .ice-btn, .coach-btn, .focus-btn').forEach(btn => {
-        btn.classList.remove('selected');
-    });
-
-    // Hide all conditional sections
-    const iceTypeSection = document.querySelector('.ice-type-selection');
-    const coachSection = document.querySelector('.coach-selection');
-    const sessionDetailsSection = document.querySelector('.session-details');
-    if (iceTypeSection) iceTypeSection.style.display = 'none';
-    if (coachSection) coachSection.style.display = 'none';
-    if (sessionDetailsSection) sessionDetailsSection.style.display = 'none';
-
-    // Reset all state variables
+    document.querySelectorAll('.session-btn, .ice-btn, .coach-btn, .focus-btn').forEach(btn => btn.classList.remove('selected'));
+    document.querySelector('.ice-type-selection').style.display = 'none';
+    document.querySelector('.coach-selection').style.display = 'none';
+    document.querySelector('.session-details').style.display = 'none';
     currentSessionType = null;
     currentIceType = null;
     selectedCoach = null;
     selectedFocusAreas = [];
-
-    // Optionally, scroll to top or focus the first field
-    // document.getElementById('date').focus();
 }
 
 // --- Update UI to use Supabase data ---
@@ -381,12 +362,7 @@ function updateSessionsList() {
     sortedSessions.forEach(session => {
         const sessionElement = document.createElement('div');
         sessionElement.className = 'session-item';
-        // Format date as MM/DD/YYYY from YYYY-MM-DD
-        let date = session.date;
-        if (date && date.includes('-')) {
-            const [year, month, day] = date.split('-');
-            date = `${month}/${day}/${year}`;
-        }
+        const date = new Date(session.date).toLocaleDateString();
         const durationMinutes = session.duration;
         let durationDisplay = '';
         if (durationMinutes < 60) {
@@ -458,9 +434,18 @@ function updateStats() {
     const monthlyHours = trainingSessions
         .filter(session => new Date(session.date) >= monthStart)
         .reduce((sum, session) => sum + session.duration / 60, 0);
-    if (typeof totalHoursElement !== 'undefined' && totalHoursElement) totalHoursElement.textContent = totalHours.toFixed(1);
-    if (typeof weeklyHoursElement !== 'undefined' && weeklyHoursElement) weeklyHoursElement.textContent = weeklyHours.toFixed(1);
-    if (typeof monthlyHoursElement !== 'undefined' && monthlyHoursElement) monthlyHoursElement.textContent = monthlyHours.toFixed(1);
+    totalHoursElement.textContent = totalHours.toFixed(1);
+    weeklyHoursElement.textContent = weeklyHours.toFixed(1);
+    monthlyHoursElement.textContent = monthlyHours.toFixed(1);
+    // Update home page stats
+    const homeTotal = document.getElementById('home-total-hours');
+    const homeWeekly = document.getElementById('home-weekly-hours');
+    const homeMonthly = document.getElementById('home-monthly-hours');
+    if (homeTotal && homeWeekly && homeMonthly) {
+        homeTotal.textContent = totalHours.toFixed(1);
+        homeWeekly.textContent = weeklyHours.toFixed(1);
+        homeMonthly.textContent = monthlyHours.toFixed(1);
+    }
 }
 
 function updateUI() {
@@ -509,7 +494,6 @@ sessionsList.addEventListener('click', async function(e) {
             return;
         }
         await fetchSessionsForUser();
-    console.log("About to call resetForm...");
     }
 });
 
@@ -639,7 +623,6 @@ editSessionForm.onsubmit = async function(e) {
     }
     closeEditModal();
     await fetchSessionsForUser();
-    console.log("About to call resetForm...");
 };
 
 document.getElementById('delete-edit-session').onclick = async function() {
@@ -652,7 +635,6 @@ document.getElementById('delete-edit-session').onclick = async function() {
     }
     closeEditModal();
     await fetchSessionsForUser();
-    console.log("About to call resetForm...");
 };
 
 // --- Mobile Nav Logic ---
@@ -706,7 +688,6 @@ checkAuth = async function() {
     accountMenu.style.display = '';
     accountEmail.textContent = user.email;
     await fetchSessionsForUser();
-    console.log("About to call resetForm...");
     if (window.innerWidth <= 600) {
       showHome();
     }
@@ -721,6 +702,22 @@ checkAuth = async function() {
 };
 
 checkAuth();
+
+// Update home page stats as well
+const originalUpdateStats = updateStats;
+updateStats = function() {
+  originalUpdateStats();
+  // Update home page stats
+  const homeTotal = document.getElementById('home-total-hours');
+  const homeWeekly = document.getElementById('home-weekly-hours');
+  const homeMonthly = document.getElementById('home-monthly-hours');
+  if (homeTotal && homeWeekly && homeMonthly) {
+    homeTotal.textContent = totalHoursElement.textContent;
+    homeWeekly.textContent = weeklyHoursElement.textContent;
+    homeMonthly.textContent = monthlyHoursElement.textContent;
+  }
+};
+
 
 document.addEventListener('DOMContentLoaded', function() {
     const mobileNav = document.getElementById('mobile-nav');
