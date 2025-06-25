@@ -1,28 +1,24 @@
-// Theme switching functionality
-const themeButtons = document.querySelectorAll('.theme-btn');
+// --- Supabase Setup ---
+const SUPABASE_URL = 'https://cxvoxwdidtzraeeeaiwj.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4dm94d2RpZHR6cmFlZWVhaXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc4NzY5ODMsImV4cCI6MjA2MzQ1Mjk4M30.ahn4_75BGDP8eqRtvheLhii_NQgqQMI9AStHbGqPXrU';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-themeButtons.forEach(button => {
-    button.addEventListener('click', () => {
-        const theme = button.dataset.theme;
-        document.body.dataset.theme = theme;
-        
-        // Update active button state
-        themeButtons.forEach(btn => btn.classList.remove('active'));
-        button.classList.add('active');
-    });
-});
-
-// Store training sessions in localStorage
-let trainingSessions = [];
-
-// DOM Elements
-const trainingForm = document.getElementById('training-form');
+// --- DOM Elements ---
+const loginBtn = document.getElementById('login-btn');
+const signupBtn = document.getElementById('signup-btn');
+const authMessage = document.getElementById('auth-message');
+const authSection = document.getElementById('auth-section');
+const appContainer = document.querySelector('.container');
 const sessionsList = document.getElementById('sessions-list');
-const totalHoursElement = document.getElementById('total-hours');
-const weeklyHoursElement = document.getElementById('weekly-hours');
-const monthlyHoursElement = document.getElementById('monthly-hours');
 
-// Set today's date as default
+// --- State ---
+let trainingSessions = [];
+let selectedFocusAreas = [];
+let selectedCoach = null;
+let currentSessionType = null;
+let currentIceType = null;
+
+// --- Utility Functions ---
 function getLocalDateString() {
   const now = new Date();
   const year = now.getFullYear();
@@ -31,214 +27,7 @@ function getLocalDateString() {
   return `${year}-${month}-${day}`;
 }
 
-document.getElementById('date').value = getLocalDateString();
-
-// Global state
-let selectedFocusAreas = [];
-let selectedCoach = null;
-let currentSessionType = null;
-let currentIceType = null;
-
-// Debug function
-function debug(message) {
-    console.log(message);
-    const debugDiv = document.createElement('div');
-    debugDiv.className = 'debug-message';
-    debugDiv.textContent = message;
-    document.body.appendChild(debugDiv);
-    setTimeout(() => debugDiv.remove(), 3000);
-}
-
-// Initialize all event listeners
-function initializeEventListeners() {
-    console.log('Initializing event listeners...');
-
-    // Session type buttons
-    const practiceBtn = document.querySelector('.session-btn[data-type="practice"]');
-    const lessonBtn = document.querySelector('.session-btn[data-type="lesson"]');
-
-    console.log('Practice button:', practiceBtn);
-    console.log('Lesson button:', lessonBtn);
-
-    if (!practiceBtn || !lessonBtn) {
-        console.error('Could not find session type buttons');
-        return;
-    }
-
-    // Practice button click handler
-    practiceBtn.onclick = function(e) {
-        console.log('Practice button clicked');
-        e.preventDefault();
-        e.stopPropagation();
-        
-        // Visual feedback
-        this.classList.add('selected');
-        lessonBtn.classList.remove('selected');
-        
-        // Update state
-        currentSessionType = 'practice';
-        
-        // Show ice type selection
-        const iceTypeSelection = document.querySelector('.ice-type-selection');
-        iceTypeSelection.style.display = 'block';
-        
-        // Hide other sections
-        document.querySelector('.coach-selection').style.display = 'none';
-        document.querySelector('.session-details').style.display = 'none';
-        
-        debug('Practice selected - showing ice type options');
-    };
-
-    // Lesson button click handler
-    lessonBtn.onclick = function(e) {
-        console.log('Lesson button clicked');
-        e.preventDefault();
-        e.stopPropagation();
-        
-        // Visual feedback
-        this.classList.add('selected');
-        practiceBtn.classList.remove('selected');
-        
-        // Update state
-        currentSessionType = 'lesson';
-        
-        // Show ice type selection
-        const iceTypeSelection = document.querySelector('.ice-type-selection');
-        iceTypeSelection.style.display = 'block';
-        
-        // Hide other sections
-        document.querySelector('.coach-selection').style.display = 'none';
-        document.querySelector('.session-details').style.display = 'none';
-        
-        debug('Lesson selected - showing ice type options');
-    };
-
-    // Ice type buttons
-    const onIceBtn = document.querySelector('.ice-btn[data-ice="on"]');
-    const offIceBtn = document.querySelector('.ice-btn[data-ice="off"]');
-
-    console.log('On Ice button:', onIceBtn);
-    console.log('Off Ice button:', offIceBtn);
-
-    if (!onIceBtn || !offIceBtn) {
-        console.error('Could not find ice type buttons');
-        return;
-    }
-
-    // On Ice button click handler
-    onIceBtn.onclick = function(e) {
-        console.log('On Ice button clicked');
-        e.preventDefault();
-        e.stopPropagation();
-        
-        // Visual feedback
-        this.classList.add('selected');
-        offIceBtn.classList.remove('selected');
-        
-        // Update state
-        currentIceType = 'on';
-        
-        // Handle display based on session type
-        if (currentSessionType === 'lesson') {
-            document.querySelector('.coach-selection').style.display = 'block';
-            if (selectedCoach) {
-                document.querySelector('.session-details').style.display = 'block';
-            } else {
-                document.querySelector('.session-details').style.display = 'none';
-            }
-        } else {
-            document.querySelector('.coach-selection').style.display = 'none';
-            document.querySelector('.session-details').style.display = 'block';
-        }
-        
-        debug('On Ice selected');
-    };
-
-    // Off Ice button click handler
-    offIceBtn.onclick = function(e) {
-        console.log('Off Ice button clicked');
-        e.preventDefault();
-        e.stopPropagation();
-        
-        // Visual feedback
-        this.classList.add('selected');
-        onIceBtn.classList.remove('selected');
-        
-        // Update state
-        currentIceType = 'off';
-        
-        // Handle display based on session type
-        if (currentSessionType === 'lesson') {
-            document.querySelector('.coach-selection').style.display = 'block';
-            if (selectedCoach) {
-                document.querySelector('.session-details').style.display = 'block';
-            } else {
-                document.querySelector('.session-details').style.display = 'none';
-            }
-        } else {
-            document.querySelector('.coach-selection').style.display = 'none';
-            document.querySelector('.session-details').style.display = 'block';
-        }
-        
-        debug('Off Ice selected');
-    };
-
-    // Coach buttons (single-select)
-    const coachBtns = document.querySelectorAll('.coach-btn');
-    coachBtns.forEach(btn => {
-        btn.onclick = function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            // Deselect all
-            coachBtns.forEach(b => b.classList.remove('selected'));
-            // Select this one
-            btn.classList.add('selected');
-            selectedCoach = btn.dataset.coach;
-            // Show session details if a coach is selected
-            if (selectedCoach) {
-                document.querySelector('.session-details').style.display = 'block';
-            } else {
-                document.querySelector('.session-details').style.display = 'none';
-            }
-        };
-    });
-
-    // Focus area buttons (multi-select)
-    const focusBtns = document.querySelectorAll('.focus-btn');
-    focusBtns.forEach(btn => {
-        btn.onclick = function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const focus = btn.dataset.focus;
-            if (selectedFocusAreas.includes(focus)) {
-                selectedFocusAreas = selectedFocusAreas.filter(f => f !== focus);
-                btn.classList.remove('selected');
-            } else {
-                selectedFocusAreas.push(focus);
-                btn.classList.add('selected');
-            }
-        };
-    });
-
-    console.log('Event listeners initialized');
-}
-
-// --- Supabase Setup ---
-const SUPABASE_URL = 'https://cxvoxwdidtzraeeeaiwj.supabase.co'; // TODO: Replace with your Supabase project URL
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4dm94d2RpZHR6cmFlZWVhaXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc4NzY5ODMsImV4cCI6MjA2MzQ1Mjk4M30.ahn4_75BGDP8eqRtvheLhii_NQgqQMI9AStHbGqPXrU'; // TODO: Replace with your Supabase anon key
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// --- Auth UI Logic ---
-const loginBtn = document.getElementById('login-btn');
-const signupBtn = document.getElementById('signup-btn');
-const logoutBtn = document.getElementById('logout-btn');
-const authMessage = document.getElementById('auth-message');
-const authSection = document.getElementById('auth-section');
-const appContainer = document.querySelector('.container');
-const accountMenu = document.getElementById('account-menu');
-const accountEmail = document.getElementById('account-email');
-const headerLogoutBtn = document.getElementById('header-logout-btn');
-
+// --- Auth Logic ---
 loginBtn.onclick = async () => {
   const email = document.getElementById('auth-email').value;
   const password = document.getElementById('auth-password').value;
@@ -254,26 +43,15 @@ signupBtn.onclick = async () => {
   authMessage.textContent = error ? error.message : 'Check your email for confirmation!';
 };
 
-headerLogoutBtn.onclick = async () => {
-  await supabase.auth.signOut();
-  authMessage.textContent = 'Logged out!';
-  checkAuth();
-};
-
 async function checkAuth() {
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
     authSection.style.display = 'none';
     appContainer.style.display = '';
-    accountMenu.style.display = '';
-    accountEmail.textContent = user.email;
     await fetchSessionsForUser();
-    console.log("About to call resetForm...");
   } else {
     authSection.style.display = '';
     appContainer.style.display = 'none';
-    accountMenu.style.display = 'none';
-    accountEmail.textContent = '';
     trainingSessions = [];
     updateUI();
   }
@@ -293,9 +71,8 @@ async function fetchSessionsForUser() {
     .from('training_sessions')
     .select('*')
     .eq('user_id', user.id)
-    .order('date', { ascending: false });
+    .order('created_at', { ascending: false });
   if (error) {
-    debug('Error loading sessions: ' + error.message);
     trainingSessions = [];
   } else {
     trainingSessions = data || [];
@@ -305,459 +82,559 @@ async function fetchSessionsForUser() {
 
 // --- Save session to Supabase ---
 document.getElementById('training-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    debug('Form submitted');
-    if (!currentSessionType || !currentIceType) {
-        alert('Please select both session type and ice type');
-        return;
-    }
-    if (currentSessionType === 'lesson' && !selectedCoach) {
-        alert('Please select a coach for the lesson');
-        return;
-    }
-    // Use selectedFocusAreas for focus
-    const focus = [...selectedFocusAreas];
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        alert('You must be logged in to log a session.');
-        return;
-    }
-    const session = {
-        user_id: user.id,
-        date: document.getElementById('date').value,
-        type: `${currentIceType}-ice-${currentSessionType}`,
-        duration: parseInt(document.getElementById('duration').value),
-        focus,
-        notes: document.getElementById('notes').value,
-        coaches: currentSessionType === 'lesson' ? [selectedCoach] : null
-    };
-    const { error } = await supabase.from('training_sessions').insert([session]);
-    if (error) {
-        debug('Error saving session: ' + error.message);
-        return;
-    }
-    await fetchSessionsForUser();
-    console.log("About to call resetForm...");
-    resetForm();
-    console.log("resetForm called successfully");
+  e.preventDefault();
+  if (!currentSessionType || !currentIceType) {
+    alert('Please select both session type and ice type');
+    return;
+  }
+  if (currentSessionType === 'lesson' && !selectedCoach) {
+    alert('Please select a coach for the lesson');
+    return;
+  }
+  const focus = [...selectedFocusAreas];
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    alert('You must be logged in to log a session.');
+    return;
+  }
+  const session = {
+    user_id: user.id,
+    date: document.getElementById('date').value,
+    type: `${currentIceType}-ice-${currentSessionType}`,
+    duration: parseInt(document.getElementById('duration').value),
+    focus,
+    notes: document.getElementById('notes').value,
+    coaches: currentSessionType === 'lesson' ? [selectedCoach] : null
+  };
+  const { error } = await supabase.from('training_sessions').insert([session]);
+  if (error) {
+    return;
+  }
+  await fetchSessionsForUser();
+  resetForm();
 });
 
 function resetForm() {
-    // Clear form fields
-    document.getElementById('date').value = getLocalDateString();
-    document.getElementById('duration').value = '';
-    document.getElementById('notes').value = '';
+  // Clear form fields
+  document.getElementById('date').value = getLocalDateString();
+  document.getElementById('duration').value = '';
+  document.getElementById('notes').value = '';
 
-    // Remove selected class from all buttons
-    document.querySelectorAll('.session-btn, .ice-btn, .coach-btn, .focus-btn').forEach(btn => {
-        btn.classList.remove('selected');
-    });
+  // Remove selected class from all buttons
+  document.querySelectorAll('.session-btn, .ice-btn, .coach-btn, .focus-btn').forEach(btn => {
+    btn.classList.remove('selected');
+  });
 
-    // Hide all conditional sections
-    const iceTypeSection = document.querySelector('.ice-type-selection');
-    const coachSection = document.querySelector('.coach-selection');
-    const sessionDetailsSection = document.querySelector('.session-details');
-    if (iceTypeSection) iceTypeSection.style.display = 'none';
-    if (coachSection) coachSection.style.display = 'none';
-    if (sessionDetailsSection) sessionDetailsSection.style.display = 'none';
+  // Hide all conditional sections
+  const iceTypeSection = document.querySelector('.ice-type-selection');
+  const coachSection = document.querySelector('.coach-selection');
+  const sessionDetailsSection = document.querySelector('.session-details');
+  if (iceTypeSection) iceTypeSection.style.display = 'none';
+  if (coachSection) coachSection.style.display = 'none';
+  if (sessionDetailsSection) sessionDetailsSection.style.display = 'none';
 
-    // Reset all state variables
-    currentSessionType = null;
-    currentIceType = null;
-    selectedCoach = null;
-    selectedFocusAreas = [];
+  // Reset all state variables
+  currentSessionType = null;
+  currentIceType = null;
+  selectedCoach = null;
+  selectedFocusAreas = [];
 
-    // Optionally, scroll to top or focus the first field
-    // document.getElementById('date').focus();
+  // Optionally, scroll to top or focus the first field
+  // document.getElementById('date').focus();
 }
 
-// --- Update UI to use Supabase data ---
+// --- UI Update Functions ---
 function updateSessionsList() {
-    if (!sessionsList) return;
-    sessionsList.innerHTML = '';
-    const sortedSessions = [...trainingSessions].sort((a, b) => 
-        new Date(b.date) - new Date(a.date)
-    );
-    sortedSessions.forEach(session => {
-        const sessionElement = document.createElement('div');
-        sessionElement.className = 'session-item';
-        // Format date as MM/DD/YYYY from YYYY-MM-DD
-        let date = session.date;
-        if (date && date.includes('-')) {
-            const [year, month, day] = date.split('-');
-            date = `${month}/${day}/${year}`;
-        }
-        const durationMinutes = session.duration;
-        let durationDisplay = '';
-        if (durationMinutes < 60) {
-            durationDisplay = `${durationMinutes} minute${durationMinutes === 1 ? '' : 's'}`;
-        } else {
-            const hours = Math.floor(durationMinutes / 60);
-            const minutes = durationMinutes % 60;
-            if (minutes === 0) {
-                durationDisplay = `${hours} hour${hours === 1 ? '' : 's'}`;
-            } else {
-                durationDisplay = `${hours} hour${hours === 1 ? '' : 's'} ${minutes} minute${minutes === 1 ? '' : 's'}`;
-            }
-        }
-        let sessionTypeParts = session.type.split('-');
-        let iceLabel = sessionTypeParts[0] === 'on' ? 'On Ice' : 'Off Ice';
-        let isPractice = sessionTypeParts[2] === 'practice';
-        const practiceTag = isPractice ? `<div class="coach-tags"><span class="coach-tag">Practice</span></div>` : '';
-        sessionElement.innerHTML = `
-            <div class="session-item-main">
-                <div class="session-title-row">
-                    <h3>${iceLabel}</h3>
-                    <button class="delete-session-btn" data-id="${session.id}" title="Delete session" tabindex="-1">
-                        <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="1.3" y="4.5" width="11.4" height="11.5" rx="2" fill="#e74c3c"/>
-                            <rect x="3.5" y="7.5" width="1.4" height="6.5" rx="0.7" fill="#fff"/>
-                            <rect x="9.1" y="7.5" width="1.4" height="6.5" rx="0.7" fill="#fff"/>
-                            <rect x="0.3" y="2" width="13.4" height="2.5" rx="1.2" fill="#e74c3c"/>
-                            <rect x="5.2" y="0.7" width="3.6" height="1.1" rx="0.5" fill="#e74c3c"/>
-                        </svg>
-                    </button>
-                </div>
-                <div class="session-meta">
-                    <span>Date: ${date}</span>
-                    <span>Duration: ${durationDisplay}</span>
-                </div>
-                <p>${session.notes || 'No notes'}</p>
-            </div>
-            <div class="session-item-meta">
-                ${session.coaches && session.coaches.length ? 
-                    `<div class="coach-tags">
-                        ${session.coaches.map(coach => 
-                            `<span class="coach-tag">Coach: ${coach.charAt(0).toUpperCase() + coach.slice(1)}</span>`
-                        ).join('')}
-                    </div>` : 
-                    ''}
-                ${practiceTag}
-                <div class="focus-tags">
-                    ${session.focus.map(area => 
-                        `<span class="focus-tag">${area.charAt(0).toUpperCase() + area.slice(1)}</span>`
-                    ).join('')}
-                </div>
-            </div>
-        `;
-        sessionsList.appendChild(sessionElement);
-    });
+  if (!sessionsList) return;
+  sessionsList.innerHTML = '';
+  const sortedSessions = [...trainingSessions].sort((a, b) => new Date(b.date) - new Date(a.date));
+  sortedSessions.slice(0, 3).forEach(session => {
+    const sessionElement = document.createElement('div');
+    sessionElement.className = 'session-item';
+    sessionElement.setAttribute('data-id', session.id);
+    let date = session.date;
+    if (date && date.includes('-')) {
+      const [year, month, day] = date.split('-');
+      date = `${month}/${day}/${year}`;
+    }
+    const durationMinutes = session.duration;
+    let durationDisplay = '';
+    if (durationMinutes < 60) {
+      durationDisplay = `${durationMinutes} minute${durationMinutes === 1 ? '' : 's'}`;
+    } else {
+      const hours = Math.floor(durationMinutes / 60);
+      const minutes = durationMinutes % 60;
+      if (minutes === 0) {
+        durationDisplay = `${hours} hour${hours === 1 ? '' : 's'}`;
+      } else {
+        durationDisplay = `${hours} hour${hours === 1 ? '' : 's'} ${minutes} minute${minutes === 1 ? '' : 's'}`;
+      }
+    }
+    let sessionTypeParts = session.type.split('-');
+    let iceLabel = sessionTypeParts[0] === 'on' ? 'On Ice' : 'Off Ice';
+    let isPractice = sessionTypeParts[2] === 'practice';
+    const practiceTag = isPractice ? `<div class="coach-tags"><span class="coach-tag">Practice</span></div>` : '';
+    sessionElement.innerHTML = `
+      <div class="session-item-main">
+        <div class="session-title-row">
+          <h3>${iceLabel}</h3>
+          <button class="delete-session-btn" data-id="${session.id}" title="Delete session" tabindex="-1">
+            <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="1.3" y="4.5" width="11.4" height="11.5" rx="2" fill="#e74c3c"/>
+              <rect x="3.5" y="7.5" width="1.4" height="6.5" rx="0.7" fill="#fff"/>
+              <rect x="9.1" y="7.5" width="1.4" height="6.5" rx="0.7" fill="#fff"/>
+              <rect x="0.3" y="2" width="13.4" height="2.5" rx="1.2" fill="#e74c3c"/>
+              <rect x="5.2" y="0.7" width="3.6" height="1.1" rx="0.5" fill="#e74c3c"/>
+            </svg>
+          </button>
+        </div>
+        <div class="session-meta">
+          <span>Date: ${date}</span>
+          <span>Duration: ${durationDisplay}</span>
+        </div>
+        <p>${session.notes || 'No notes'}</p>
+      </div>
+      <div class="session-item-meta">
+        ${session.coaches && session.coaches.length ? `<div class="coach-tags">${session.coaches.map(coach => `<span class="coach-tag">Coach: ${coach.charAt(0).toUpperCase() + coach.slice(1)}</span>`).join('')}</div>` : ''}
+        ${practiceTag}
+        <div class="focus-tags">${session.focus.map(area => `<span class="focus-tag">${area.charAt(0).toUpperCase() + area.slice(1)}</span>`).join('')}</div>
+      </div>
+    `;
+    sessionsList.appendChild(sessionElement);
+  });
 }
 
 function updateStats() {
-    const now = new Date();
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - now.getDay());
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const totalHours = trainingSessions.reduce((sum, session) => 
-        sum + session.duration / 60, 0
-    );
-    const weeklyHours = trainingSessions
-        .filter(session => new Date(session.date) >= weekStart)
-        .reduce((sum, session) => sum + session.duration / 60, 0);
-    const monthlyHours = trainingSessions
-        .filter(session => new Date(session.date) >= monthStart)
-        .reduce((sum, session) => sum + session.duration / 60, 0);
-    if (typeof totalHoursElement !== 'undefined' && totalHoursElement) totalHoursElement.textContent = totalHours.toFixed(1);
-    if (typeof weeklyHoursElement !== 'undefined' && weeklyHoursElement) weeklyHoursElement.textContent = weeklyHours.toFixed(1);
-    if (typeof monthlyHoursElement !== 'undefined' && monthlyHoursElement) monthlyHoursElement.textContent = monthlyHours.toFixed(1);
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const totalHours = trainingSessions.reduce((sum, session) => sum + session.duration / 60, 0);
+  const weeklyHours = trainingSessions.filter(session => new Date(session.date) >= weekStart).reduce((sum, session) => sum + session.duration / 60, 0);
+  const monthlyHours = trainingSessions.filter(session => new Date(session.date) >= monthStart).reduce((sum, session) => sum + session.duration / 60, 0);
+  const bestWeek = Math.max(...getWeeklyTotals(trainingSessions), 0);
+  const bestMonth = Math.max(...getMonthlyTotals(trainingSessions), 0);
+  const bestWeekElem = document.getElementById('home-best-week');
+  const bestMonthElem = document.getElementById('home-best-month');
+  if (bestWeekElem) bestWeekElem.textContent = bestWeek.toFixed(1);
+  if (bestMonthElem) bestMonthElem.textContent = bestMonth.toFixed(1);
+}
+
+function getWeeklyTotals(sessions) {
+  const weekMap = {};
+  sessions.forEach(session => {
+    const d = new Date(session.date);
+    const year = d.getFullYear();
+    const week = getWeekNumber(d);
+    const key = `${year}-W${week}`;
+    weekMap[key] = (weekMap[key] || 0) + (session.duration / 60);
+  });
+  return Object.values(weekMap);
+}
+function getMonthlyTotals(sessions) {
+  const monthMap = {};
+  sessions.forEach(session => {
+    const d = new Date(session.date);
+    const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
+    monthMap[key] = (monthMap[key] || 0) + (session.duration / 60);
+  });
+  return Object.values(monthMap);
+}
+function getWeekNumber(d) {
+  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+  return weekNo;
 }
 
 function updateUI() {
-    updateSessionsList();
-    updateStats();
+  updateSessionsList();
+  updateStats();
+  initializeEventListeners();
 }
 
-// Initialize everything when the page loads
-window.onload = function() {
-    console.log('Page loaded - initializing...');
-    initializeEventListeners();
-    updateUI();
-    console.log('Initialization complete');
-
-    // Secret Cat Modal logic
-    const pawBtn = document.getElementById('secret-paw');
-    const catModal = document.getElementById('cat-modal');
-    const closeCatModal = document.getElementById('close-cat-modal');
-
-    if (pawBtn && catModal && closeCatModal) {
-      pawBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        catModal.style.display = 'flex';
-      });
-      closeCatModal.addEventListener('click', (e) => {
-        catModal.style.display = 'none';
-      });
-      catModal.addEventListener('click', (e) => {
-        if (e.target === catModal) {
-          catModal.style.display = 'none';
-        }
-      });
-    }
-};
+// --- Event Listeners for Form Buttons ---
+function initializeEventListeners() {
+  // Session type
+  document.querySelectorAll('.session-btn').forEach(btn => {
+    btn.onclick = function(e) {
+      e.preventDefault();
+      document.querySelectorAll('.session-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      currentSessionType = btn.dataset.type;
+      document.querySelector('.ice-type-selection').style.display = 'block';
+      document.querySelector('.coach-selection').style.display = 'none';
+      document.querySelector('.session-details').style.display = 'none';
+    };
+  });
+  // Ice type
+  document.querySelectorAll('.ice-btn').forEach(btn => {
+    btn.onclick = function(e) {
+      e.preventDefault();
+      document.querySelectorAll('.ice-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      currentIceType = btn.dataset.ice;
+      if (currentSessionType === 'lesson') {
+        document.querySelector('.coach-selection').style.display = 'block';
+        document.querySelector('.session-details').style.display = 'none';
+      } else {
+        document.querySelector('.coach-selection').style.display = 'none';
+        document.querySelector('.session-details').style.display = 'block';
+      }
+    };
+  });
+  // Coach
+  document.querySelectorAll('.coach-btn').forEach(btn => {
+    btn.onclick = function(e) {
+      e.preventDefault();
+      document.querySelectorAll('.coach-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedCoach = btn.dataset.coach;
+      document.querySelector('.session-details').style.display = 'block';
+    };
+  });
+  // Focus areas
+  document.querySelectorAll('.focus-btn').forEach(btn => {
+    btn.onclick = null; // Remove any existing handler
+    btn.onclick = function(e) {
+      e.preventDefault();
+      const focus = btn.dataset.focus;
+      if (selectedFocusAreas.includes(focus)) {
+        selectedFocusAreas = selectedFocusAreas.filter(f => f !== focus);
+        btn.classList.remove('selected');
+      } else {
+        selectedFocusAreas.push(focus);
+        btn.classList.add('selected');
+      }
+    };
+  });
+}
 
 // --- Delete session logic ---
 sessionsList.addEventListener('click', async function(e) {
-    const btn = e.target.closest('.delete-session-btn');
-    if (btn) {
-        const sessionId = btn.getAttribute('data-id');
-        if (!sessionId) return;
-        if (!confirm('Are you sure you want to delete this session?')) return;
-        const { error } = await supabase.from('training_sessions').delete().eq('id', sessionId);
-        if (error) {
-            debug('Error deleting session: ' + error.message);
-            return;
-        }
-        await fetchSessionsForUser();
-    console.log("About to call resetForm...");
+  const btn = e.target.closest('.delete-session-btn');
+  if (btn) {
+    const sessionId = btn.getAttribute('data-id');
+    if (!sessionId) return;
+    if (!confirm('Are you sure you want to delete this session?')) return;
+    const { error } = await supabase.from('training_sessions').delete().eq('id', sessionId);
+    if (error) {
+      return;
     }
+    await fetchSessionsForUser();
+  }
+});
+
+// --- Hamburger menu logic ---
+document.addEventListener('DOMContentLoaded', function() {
+  const hamburgerBtn = document.getElementById('hamburger-btn');
+  const dropdownMenu = document.getElementById('dropdown-menu');
+  const accountModal = document.getElementById('account-modal');
+  const closeAccountModal = document.getElementById('close-account-modal');
+  const logoutBtn = document.getElementById('logout-btn');
+  const changeEmailBtn = document.getElementById('change-email-btn');
+  const changePasswordBtn = document.getElementById('change-password-btn');
+  const accountEmailInput = document.getElementById('account-email-input');
+  const accountPasswordInput = document.getElementById('account-password-input');
+  const accountFeedback = document.getElementById('account-feedback');
+
+  if (hamburgerBtn && dropdownMenu) {
+    hamburgerBtn.onclick = function(e) {
+      e.stopPropagation();
+      dropdownMenu.classList.toggle('show');
+    };
+    document.addEventListener('click', function(e) {
+      if (!dropdownMenu.contains(e.target) && e.target !== hamburgerBtn) {
+        dropdownMenu.classList.remove('show');
+      }
+    });
+  }
+
+  // Use event delegation for Account button
+  if (dropdownMenu && accountModal) {
+    dropdownMenu.addEventListener('click', function(e) {
+      const accountBtn = e.target.closest('#dropdown-account-btn');
+      if (accountBtn) {
+        e.preventDefault();
+        accountModal.style.display = 'flex';
+        dropdownMenu.classList.remove('show');
+      }
+    });
+  }
+  // Close account modal
+  if (closeAccountModal && accountModal) {
+    closeAccountModal.onclick = function() {
+      accountModal.style.display = 'none';
+    };
+  }
+  // Log out from modal
+  if (logoutBtn) {
+    logoutBtn.onclick = async function() {
+      await supabase.auth.signOut();
+      window.location.reload();
+    };
+  }
+
+  if (changeEmailBtn && accountEmailInput && accountFeedback) {
+    changeEmailBtn.onclick = async function() {
+      const newEmail = accountEmailInput.value.trim();
+      if (!newEmail) {
+        accountFeedback.textContent = 'Please enter a new email.';
+        return;
+      }
+      changeEmailBtn.disabled = true;
+      accountFeedback.textContent = 'Updating email...';
+      const { error } = await supabase.auth.updateUser({ email: newEmail });
+      if (error) {
+        accountFeedback.textContent = error.message;
+      } else {
+        accountFeedback.textContent = 'Email update requested. Check your new email for confirmation.';
+        accountEmailInput.value = '';
+      }
+      changeEmailBtn.disabled = false;
+    };
+  }
+
+  if (changePasswordBtn && accountPasswordInput && accountFeedback) {
+    changePasswordBtn.onclick = async function() {
+      const newPassword = accountPasswordInput.value.trim();
+      if (!newPassword || newPassword.length < 6) {
+        accountFeedback.textContent = 'Password must be at least 6 characters.';
+        return;
+      }
+      changePasswordBtn.disabled = true;
+      accountFeedback.textContent = 'Updating password...';
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        accountFeedback.textContent = error.message;
+      } else {
+        accountFeedback.textContent = 'Password updated!';
+        accountPasswordInput.value = '';
+      }
+      changePasswordBtn.disabled = false;
+    };
+  }
+});
+
+function setAccountEmailValue(email) {
+  // Do not update the dropdownAccountBtn text. It should always say 'Account'.
+}
+
+// --- Secret Cat Modal logic ---
+document.addEventListener('DOMContentLoaded', function() {
+  const pawBtn = document.getElementById('secret-paw');
+  const catModal = document.getElementById('cat-modal');
+  const closeCatModal = document.getElementById('close-cat-modal');
+  if (pawBtn && catModal && closeCatModal) {
+    pawBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      catModal.style.display = 'flex';
+    });
+    closeCatModal.addEventListener('click', (e) => {
+      catModal.style.display = 'none';
+    });
+    catModal.addEventListener('click', (e) => {
+      if (e.target === catModal) {
+        catModal.style.display = 'none';
+      }
+    });
+  }
 });
 
 // --- Edit session modal logic ---
-const editSessionModal = document.getElementById('edit-session-modal');
-const closeEditModalBtn = document.getElementById('close-edit-modal');
-const editSessionForm = document.getElementById('edit-session-form');
-const editDate = document.getElementById('edit-date');
-const editDuration = document.getElementById('edit-duration');
-const editNotes = document.getElementById('edit-notes');
-const editFocusGroup = document.getElementById('edit-focus-group');
-const editCoachGroup = document.getElementById('edit-coach-group');
-let editingSessionId = null;
-let editingSessionType = null;
-let editingSessionIce = null;
-let editingSelectedCoach = null;
-let editingSelectedFocus = [];
-
-// Open modal on session card click (not delete button)
 sessionsList.addEventListener('click', function(e) {
-    const btn = e.target.closest('.delete-session-btn');
-    if (btn) return; // handled by delete logic
-    const card = e.target.closest('.session-item');
-    if (!card) return;
-    // Find session by id (from delete button or from order)
-    let sessionId = null;
-    const delBtn = card.querySelector('.delete-session-btn');
-    if (delBtn) sessionId = delBtn.getAttribute('data-id');
-    if (!sessionId) return;
-    const session = trainingSessions.find(s => s.id === sessionId);
-    if (!session) return;
-    // Fill modal fields
-    editingSessionId = session.id;
-    const typeParts = session.type.split('-');
-    editingSessionType = typeParts[2];
-    editingSessionIce = typeParts[0];
-    editDate.value = session.date;
-    editDuration.value = session.duration;
-    editNotes.value = session.notes || '';
-    // Focus areas
-    editingSelectedFocus = Array.isArray(session.focus) ? [...session.focus] : [];
-    editFocusGroup.querySelectorAll('.focus-btn').forEach(btn => {
-        if (editingSelectedFocus.includes(btn.dataset.focus)) {
-            btn.classList.add('selected');
-        } else {
-            btn.classList.remove('selected');
-        }
-    });
-    // Coach
-    if (editingSessionType === 'lesson') {
-        editCoachGroup.style.display = '';
-        editingSelectedCoach = session.coaches && session.coaches.length ? session.coaches[0] : null;
-        editCoachGroup.querySelectorAll('.coach-btn').forEach(btn => {
-            if (btn.dataset.coach === editingSelectedCoach) {
-                btn.classList.add('selected');
-            } else {
-                btn.classList.remove('selected');
-            }
-        });
+  const btn = e.target.closest('.delete-session-btn');
+  if (btn) return; // handled by delete logic
+  const card = e.target.closest('.session-item');
+  if (!card) return;
+  const sessionId = card.getAttribute('data-id');
+  if (!sessionId) return;
+  const session = trainingSessions.find(s => String(s.id) === String(sessionId));
+  if (!session) return;
+  // Query modal elements here to ensure they exist
+  const editSessionModal = document.getElementById('edit-session-modal');
+  const editDate = document.getElementById('edit-date');
+  const editDuration = document.getElementById('edit-duration');
+  const editNotes = document.getElementById('edit-notes');
+  const editFocusGroup = document.getElementById('edit-focus-group');
+  const editCoachGroup = document.getElementById('edit-coach-group');
+  // Fill modal fields
+  editingSessionId = session.id;
+  const typeParts = session.type.split('-');
+  editingSessionType = typeParts[2];
+  editingSessionIce = typeParts[0];
+  editDate.value = session.date;
+  editDuration.value = session.duration;
+  editNotes.value = session.notes || '';
+  // Focus areas
+  editingSelectedFocus = Array.isArray(session.focus) ? [...session.focus] : [];
+  editFocusGroup.querySelectorAll('.focus-btn').forEach(btn => {
+    if (editingSelectedFocus.includes(btn.dataset.focus)) {
+      btn.classList.add('selected');
     } else {
-        editCoachGroup.style.display = 'none';
-        editingSelectedCoach = null;
-        editCoachGroup.querySelectorAll('.coach-btn').forEach(btn => btn.classList.remove('selected'));
+      btn.classList.remove('selected');
     }
-    // Show modal
-    editSessionModal.style.display = 'flex';
+  });
+  // Coach
+  if (editingSessionType === 'lesson') {
+    editCoachGroup.style.display = '';
+    editingSelectedCoach = session.coaches && session.coaches.length ? session.coaches[0] : null;
+    editCoachGroup.querySelectorAll('.coach-btn').forEach(btn => {
+      if (btn.dataset.coach === editingSelectedCoach) {
+        btn.classList.add('selected');
+      } else {
+        btn.classList.remove('selected');
+      }
+    });
+  } else {
+    editCoachGroup.style.display = 'none';
+    editingSelectedCoach = null;
+    editCoachGroup.querySelectorAll('.coach-btn').forEach(btn => btn.classList.remove('selected'));
+  }
+  // Show modal
+  editSessionModal.style.display = 'flex';
 });
 
 // Modal focus area selection
-editFocusGroup.querySelectorAll('.focus-btn').forEach(btn => {
-    btn.onclick = function(e) {
+(function() {
+  const editFocusGroup = document.getElementById('edit-focus-group');
+  if (editFocusGroup) {
+    editFocusGroup.querySelectorAll('.focus-btn').forEach(btn => {
+      btn.onclick = function(e) {
         e.preventDefault();
         btn.classList.toggle('selected');
-    };
-});
+      };
+    });
+  }
+})();
 // Modal coach selection
-editCoachGroup.querySelectorAll('.coach-btn').forEach(btn => {
-    btn.onclick = function(e) {
+(function() {
+  const editCoachGroup = document.getElementById('edit-coach-group');
+  if (editCoachGroup) {
+    editCoachGroup.querySelectorAll('.coach-btn').forEach(btn => {
+      btn.onclick = function(e) {
         e.preventDefault();
         editCoachGroup.querySelectorAll('.coach-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
-        editingSelectedCoach = btn.dataset.coach;
-    };
-});
+        window.editingSelectedCoach = btn.dataset.coach;
+      };
+    });
+  }
+})();
 // Close modal
-function closeEditModal() {
+(function() {
+  const editSessionModal = document.getElementById('edit-session-modal');
+  const closeEditModalBtn = document.getElementById('close-edit-modal');
+  const cancelEditBtn = document.getElementById('cancel-edit-session');
+  function closeEditModal() {
     editSessionModal.style.display = 'none';
-    editingSessionId = null;
-    editingSessionType = null;
-    editingSessionIce = null;
-    editingSelectedCoach = null;
-    editingSelectedFocus = [];
-}
-closeEditModalBtn.onclick = closeEditModal;
-document.getElementById('cancel-edit-session').onclick = closeEditModal;
+    window.editingSessionId = null;
+    window.editingSessionType = null;
+    window.editingSessionIce = null;
+    window.editingSelectedCoach = null;
+    window.editingSelectedFocus = [];
+  }
+  if (closeEditModalBtn) closeEditModalBtn.onclick = closeEditModal;
+  if (cancelEditBtn) cancelEditBtn.onclick = closeEditModal;
+  window.closeEditModal = closeEditModal;
+})();
 // Save edits
-editSessionForm.onsubmit = async function(e) {
-    e.preventDefault();
-    if (!editingSessionId) return;
-    // Always read selected focus areas from DOM
-    const focus = Array.from(editFocusGroup.querySelectorAll('.focus-btn.selected')).map(btn => btn.dataset.focus);
-    // Always read selected coach from DOM
-    let coach = null;
-    if (editingSessionType === 'lesson') {
+(function() {
+  const editSessionForm = document.getElementById('edit-session-form');
+  if (editSessionForm) {
+    editSessionForm.onsubmit = async function(e) {
+      e.preventDefault();
+      if (!window.editingSessionId) return;
+      const editFocusGroup = document.getElementById('edit-focus-group');
+      const editCoachGroup = document.getElementById('edit-coach-group');
+      const editDate = document.getElementById('edit-date');
+      const editDuration = document.getElementById('edit-duration');
+      const editNotes = document.getElementById('edit-notes');
+      // Always read selected focus areas from DOM
+      const focus = Array.from(editFocusGroup.querySelectorAll('.focus-btn.selected')).map(btn => btn.dataset.focus);
+      // Always read selected coach from DOM
+      let coach = null;
+      if (window.editingSessionType === 'lesson') {
         const selectedCoachBtn = editCoachGroup.querySelector('.coach-btn.selected');
         coach = selectedCoachBtn ? selectedCoachBtn.dataset.coach : null;
         if (!coach) {
-            alert('Please select a coach for the lesson');
-            return;
+          alert('Please select a coach for the lesson');
+          return;
         }
-    }
-    const updates = {
+      }
+      const updates = {
         date: editDate.value,
         duration: parseInt(editDuration.value),
         notes: editNotes.value,
         focus: focus
-    };
-    if (editingSessionType === 'lesson') {
+      };
+      if (window.editingSessionType === 'lesson') {
         updates.coaches = [coach];
-    } else {
+      } else {
         updates.coaches = null;
-    }
-    const { error } = await supabase.from('training_sessions').update(updates).eq('id', editingSessionId);
-    if (error) {
-        debug('Error updating session: ' + error.message);
+      }
+      const { error } = await supabase.from('training_sessions').update(updates).eq('id', window.editingSessionId);
+      if (error) {
         return;
-    }
-    closeEditModal();
-    await fetchSessionsForUser();
-    console.log("About to call resetForm...");
-};
-
-document.getElementById('delete-edit-session').onclick = async function() {
-    if (!editingSessionId) return;
-    if (!confirm('Are you sure you want to delete this session?')) return;
-    const { error } = await supabase.from('training_sessions').delete().eq('id', editingSessionId);
-    if (error) {
-        debug('Error deleting session: ' + error.message);
+      }
+      window.closeEditModal();
+      await fetchSessionsForUser();
+    };
+  }
+})();
+// Delete session from modal
+(function() {
+  const deleteEditBtn = document.getElementById('delete-edit-session');
+  if (deleteEditBtn) {
+    deleteEditBtn.onclick = async function() {
+      if (!window.editingSessionId) return;
+      if (!confirm('Are you sure you want to delete this session?')) return;
+      const { error } = await supabase.from('training_sessions').delete().eq('id', window.editingSessionId);
+      if (error) {
         return;
-    }
-    closeEditModal();
-    await fetchSessionsForUser();
-    console.log("About to call resetForm...");
-};
-
-// --- Mobile Nav Logic ---
-const mobileNav = document.getElementById('mobile-nav');
-const mobileNavBtns = mobileNav ? mobileNav.querySelectorAll('.mobile-nav-btn') : [];
-const homeContainer = document.querySelector('.home-container');
-const accountContainer = document.querySelector('.account-container');
-
-function setInitialView() {
-  if (window.innerWidth <= 600) {
-    if (homeContainer) homeContainer.style.display = '';
-    if (appContainer) appContainer.style.display = 'none';
-    if (accountContainer) accountContainer.style.display = 'none';
-  } else {
-    if (homeContainer) homeContainer.style.display = 'none';
-    if (appContainer) appContainer.style.display = '';
-    if (accountContainer) accountContainer.style.display = 'none';
+      }
+      window.closeEditModal();
+      await fetchSessionsForUser();
+    };
   }
-}
-setInitialView();
-window.addEventListener('resize', setInitialView);
+})();
 
-function showHome() {
-  if (homeContainer) homeContainer.style.display = '';
-  if (appContainer) appContainer.style.display = 'none';
-  if (accountContainer) accountContainer.style.display = 'none';
-}
-function showMain() {
-  if (homeContainer) homeContainer.style.display = 'none';
-  if (appContainer) appContainer.style.display = '';
-  if (accountContainer) accountContainer.style.display = 'none';
-}
-function showAccount() {
-  if (homeContainer) homeContainer.style.display = 'none';
-  if (appContainer) appContainer.style.display = 'none';
-  if (accountContainer) accountContainer.style.display = '';
-}
-if (mobileNavBtns.length === 3) {
-  mobileNavBtns[0].onclick = function() { console.log('Home clicked'); showHome(); };
-  mobileNavBtns[1].onclick = function() { console.log('Main clicked'); showMain(); };
-  mobileNavBtns[2].onclick = function() { console.log('Account clicked'); showAccount(); };
-}
-
-// On login, show home page by default on mobile
-const originalCheckAuth = checkAuth;
-checkAuth = async function() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user) {
-    authSection.style.display = 'none';
-    appContainer.style.display = '';
-    accountMenu.style.display = '';
-    accountEmail.textContent = user.email;
-    await fetchSessionsForUser();
-    console.log("About to call resetForm...");
-    if (window.innerWidth <= 600) {
-      showHome();
-    }
-  } else {
-    authSection.style.display = '';
-    appContainer.style.display = 'none';
-    accountMenu.style.display = 'none';
-    accountEmail.textContent = '';
-    trainingSessions = [];
-    updateUI();
-  }
+// --- Initialize ---
+document.getElementById('date').value = getLocalDateString();
+window.onload = function() {
+  initializeEventListeners();
+  updateUI();
 };
-
-checkAuth();
 
 document.addEventListener('DOMContentLoaded', function() {
-    const mobileNav = document.getElementById('mobile-nav');
-    const mobileNavBtns = mobileNav ? mobileNav.querySelectorAll('.mobile-nav-btn') : [];
-    const homeContainer = document.querySelector('.home-container');
-    const accountContainer = document.querySelector('.account-container');
-    const appContainer = document.querySelector('.container');
-  
-    function showHome() {
-      if (homeContainer) homeContainer.style.display = '';
-      if (appContainer) appContainer.style.display = 'none';
-      if (accountContainer) accountContainer.style.display = 'none';
+    // Hamburger menu logic
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    const dropdownMenu = document.getElementById('dropdown-menu');
+    const dropdownAccountEmail = document.getElementById('dropdown-account-email');
+    const dropdownLogoutBtn = document.getElementById('dropdown-logout-btn');
+    if (hamburgerBtn && dropdownMenu) {
+        hamburgerBtn.onclick = function(e) {
+            e.stopPropagation();
+            dropdownMenu.classList.toggle('show');
+        };
+        // Close menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!dropdownMenu.contains(e.target) && e.target !== hamburgerBtn) {
+                dropdownMenu.classList.remove('show');
+            }
+        });
     }
-    function showMain() {
-      if (homeContainer) homeContainer.style.display = 'none';
-      if (appContainer) appContainer.style.display = '';
-      if (accountContainer) accountContainer.style.display = 'none';
+    // Show account email in dropdown
+    if (dropdownAccountEmail) {
+        const userEmail = window.accountEmailValue || '';
+        dropdownAccountEmail.textContent = userEmail;
     }
-    function showAccount() {
-      if (homeContainer) homeContainer.style.display = 'none';
-      if (appContainer) appContainer.style.display = 'none';
-      if (accountContainer) accountContainer.style.display = '';
+    // Handle logout from dropdown
+    if (dropdownLogoutBtn) {
+        dropdownLogoutBtn.onclick = async function() {
+            await supabase.auth.signOut();
+            window.location.reload();
+        };
     }
-  
-    function setInitialView() {
-      if (window.innerWidth <= 600) {
-        showHome();
-      } else {
-        showMain();
-      }
-    }
-    setInitialView();
-    window.addEventListener('resize', setInitialView);
-  
-    if (mobileNavBtns.length === 3) {
-      mobileNavBtns[0].onclick = function() { console.log('Home clicked'); showHome(); };
-      mobileNavBtns[1].onclick = function() { console.log('Main clicked'); showMain(); };
-      mobileNavBtns[2].onclick = function() { console.log('Account clicked'); showAccount(); };
-    }
-  });
+});

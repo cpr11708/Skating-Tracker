@@ -14,61 +14,16 @@
             <div class="header-titles">
                 <div class="header-title">Ice Dance Training Log</div>
             </div>
-            <div id="account-menu" style="display:none;">
-                <span id="account-email"></span>
-                <button id="header-logout-btn">Log Out</button>
-            </div>
             <span class="mobile-user-btn" style="display:none;">👤</span>
+            <div id="hamburger-menu" class="hamburger-menu">
+                <button id="hamburger-btn" class="hamburger-btn" aria-label="Open menu">&#9776;</button>
+                <div id="dropdown-menu" class="dropdown-menu">
+                    <button id="dropdown-account-btn" class="dropdown-link">Account</button>
+                    <hr class="dropdown-divider">
+                    <a href="data.html" class="dropdown-link">Statistics</a>
+                </div>
+            </div>
         </div>
-    </div>
-
-    <div class="home-container" style="display:none;">
-        <section class="card">
-            <h2>Welcome!</h2>
-            <p>Track your ice dance training progress and see your stats at a glance.</p>
-        </section>
-        <section class="card">
-            <h2>Training Summary</h2>
-            <div class="stats-container">
-                <div class="stat-box">
-                    <h3>Total Hours</h3>
-                    <span id="home-total-hours">0</span>
-                </div>
-                <div class="stat-box">
-                    <h3>This Week</h3>
-                    <span id="home-weekly-hours">0</span>
-                </div>
-                <div class="stat-box">
-                    <h3>This Month</h3>
-                    <span id="home-monthly-hours">0</span>
-                </div>
-            </div>
-        </section>
-        <section class="card">
-            <h2>Recent Sessions</h2>
-            <div class="sessions-list" id="home-sessions-list">
-                <!-- Recent sessions will be added here dynamically -->
-            </div>
-        </section>
-        <section class="card">
-            <h2>Best Week &amp; Month</h2>
-            <div class="stats-container">
-                <div class="stat-box">
-                    <h3>Best Week</h3>
-                    <span id="home-best-week">0</span>
-                </div>
-                <div class="stat-box">
-                    <h3>Best Month</h3>
-                    <span id="home-best-month">0</span>
-                </div>
-            </div>
-        </section>
-    </div>
-    <div class="account-container" style="display:none;">
-        <section class="card">
-            <h2>Account</h2>
-            <p>Account page coming soon...</p>
-        </section>
     </div>
 
     <!-- Auth Section (shown when not logged in) -->
@@ -175,26 +130,6 @@
                     </div>
                 </form>
             </section>
-            <!-- Training Summary temporarily hidden from main page -->
-            <!--
-            <section class="card">
-                <h2>Training Summary</h2>
-                <div class="stats-container">
-                    <div class="stat-box">
-                        <h3>Total Hours</h3>
-                        <span id="total-hours">0</span>
-                    </div>
-                    <div class="stat-box">
-                        <h3>This Week</h3>
-                        <span id="weekly-hours">0</span>
-                    </div>
-                    <div class="stat-box">
-                        <h3>This Month</h3>
-                        <span id="monthly-hours">0</span>
-                    </div>
-                </div>
-            </section>
-            -->
             <section class="card">
                 <h2>Recent Sessions</h2>
                 <div class="sessions-list" id="sessions-list">
@@ -296,6 +231,27 @@
             <div style="margin-top:1rem; font-size:1.2rem; color:#333; font-style:italic;">A secret cat</div>
         </div>
     </div>
+    <!-- Account Modal -->
+    <div id="account-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close-modal" id="close-account-modal">&times;</span>
+            <h2>Account</h2>
+            <div class="form-group">
+                <label for="account-email-input">Change Email</label>
+                <input type="email" id="account-email-input" placeholder="New email" autocomplete="email" />
+                <button id="change-email-btn" class="submit-btn" type="button">Change Email</button>
+            </div>
+            <div class="form-group">
+                <label for="account-password-input">Change Password</label>
+                <input type="password" id="account-password-input" placeholder="New password" autocomplete="new-password" />
+                <button id="change-password-btn" class="submit-btn" type="button">Change Password</button>
+            </div>
+            <div class="form-group">
+                <button id="logout-btn" class="danger-btn">Log Out</button>
+            </div>
+            <div id="account-feedback" style="margin-top: 0.5rem; min-height: 1.5em; color: #1976d2; text-align: center;"></div>
+        </div>
+    </div>
     <script>
         // Cat modal functionality
         document.addEventListener('DOMContentLoaded', function() {
@@ -324,10 +280,5 @@
         });
     </script>
     <script src="script.js"></script>
-    <nav id="mobile-nav">
-        <button class="mobile-nav-btn">🏠</button>
-        <button class="mobile-nav-btn">➕</button>
-        <button class="mobile-nav-btn">👤</button>
-    </nav>
 </body>
 </html> 
