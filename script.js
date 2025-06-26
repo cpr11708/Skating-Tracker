@@ -264,8 +264,6 @@ function initializeEventListeners() {
       btn.classList.add('selected');
       currentSessionType = btn.dataset.type;
       document.querySelector('.ice-type-selection').style.display = 'block';
-      document.querySelector('.coach-selection').style.display = 'none';
-      document.querySelector('.session-details').style.display = 'none';
     };
   });
   // Ice type
