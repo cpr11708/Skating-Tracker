@@ -1182,4 +1182,37 @@ h3 {
 }
 #account-modal .form-group button.submit-btn {
     margin-top: 0.2rem;
+}
+
+/* Sticky card header for statistics page */
+.sticky-card-header {
+  /* removed */
+}
+
+/* Sticky top section of statistics card */
+.sticky-card-top {
+  position: sticky;
+  top: 0;
+  z-index: 11;
+  background: #fff;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  box-shadow: 0 2px 8px rgba(44,62,80,0.06);
+  padding: 2rem 2rem 0.5rem 2rem;
+  margin-left: -2rem;
+  margin-right: -2rem;
+  margin-top: -2rem;
+  /* No bottom border-radius so it blends with the card */
+}
+
+.data-table-container {
+  position: static;
+  /* Remove sticky, keep card look */
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  max-width: 1000px;
+  margin: 2rem auto;
+  padding: 2rem;
+  overflow: visible;
 } 

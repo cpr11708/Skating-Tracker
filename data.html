@@ -23,8 +23,10 @@
 </head>
 <body>
     <div class="data-table-container">
-        <button class="back-btn" onclick="window.location.href='index.html'">← Back to Log</button>
-        <h2>All Training Sessions</h2>
+        <div class="sticky-card-top">
+            <button class="back-btn" onclick="window.location.href='index.html'">← Back to Log</button>
+            <h2>Statistics</h2>
+        </div>
         <table id="sessions-table">
             <thead>
                 <tr>
@@ -369,7 +371,20 @@
         // 1. Lessons per coach
         const coachCounts = {};
         // 2. Focus area frequency
+        // Define all valid focus areas (matching the UI, with display names)
+        const allFocusAreas = [
+            'Edges', 'Turns', 'Twizzles', 'Lifts', 'Spins',
+            'Step Sequences', 'Pattern Dance', 'RD', 'FD', 'Sections',
+            'Story', 'Choreography', 'Skating Skills', 'Transitions', 'Interpretation',
+            'Performance', 'Timing', 'Musicality', 'Partnering', 'Connection',
+            'Warmup', 'Stretching', 'Speed', 'Footwork'
+        ];
+        const excludedFocus = ['Free-dance-run', 'Rhythm-dance-run'];
+        // Sort focus areas alphabetically for the chart
+        const sortedFocusAreas = [...allFocusAreas].sort((a, b) => a.localeCompare(b));
+        // Focus area frequency
         const focusCounts = {};
+        sortedFocusAreas.forEach(area => { focusCounts[area] = 0; });
         // 3. Sessions over time (by date)
         const sessionsByDate = {};
         data.forEach(session => {
@@ -383,8 +398,16 @@
             // Focus area frequency
             if (Array.isArray(session.focus)) {
                 session.focus.forEach(focus => {
-                    const focusName = focus.charAt(0).toUpperCase() + focus.slice(1);
-                    focusCounts[focusName] = (focusCounts[focusName] || 0) + 1;
+                    let focusName = focus.charAt(0).toUpperCase() + focus.slice(1);
+                    // Normalize for display (e.g. step-sequences -> Step Sequences)
+                    if (focusName === 'Step-sequences') focusName = 'Step Sequences';
+                    if (focusName === 'Pattern-dance') focusName = 'Pattern Dance';
+                    if (focusName === 'Skating-skills') focusName = 'Skating Skills';
+                    if (focusName === 'Free-dance-run') focusName = 'FD';
+                    if (focusName === 'Rhythm-dance-run') focusName = 'RD';
+                    if (!excludedFocus.includes(focusName) && sortedFocusAreas.includes(focusName)) {
+                        focusCounts[focusName] = (focusCounts[focusName] || 0) + 1;
+                    }
                 });
             }
             // Sessions over time
@@ -419,10 +442,10 @@
         new Chart(focusChartCtx, {
             type: 'bar',
             data: {
-                labels: Object.keys(focusCounts),
+                labels: sortedFocusAreas,
                 datasets: [{
                     label: 'Selections',
-                    data: Object.values(focusCounts),
+                    data: sortedFocusAreas.map(area => focusCounts[area]),
                     backgroundColor: '#2ecc71',
                 }]
             },

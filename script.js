@@ -264,6 +264,24 @@ function initializeEventListeners() {
       btn.classList.add('selected');
       currentSessionType = btn.dataset.type;
       document.querySelector('.ice-type-selection').style.display = 'block';
+      if (currentSessionType === 'practice') {
+        selectedCoach = null;
+        document.querySelectorAll('.coach-btn').forEach(b => b.classList.remove('selected'));
+        document.querySelector('.coach-selection').style.display = 'none';
+        if (currentIceType) {
+          document.querySelector('.session-details').style.display = 'block';
+        } else {
+          document.querySelector('.session-details').style.display = 'none';
+        }
+      } else if (currentSessionType === 'lesson') {
+        if (currentIceType) {
+          document.querySelector('.coach-selection').style.display = 'block';
+          document.querySelector('.session-details').style.display = 'none';
+        } else {
+          document.querySelector('.coach-selection').style.display = 'none';
+          document.querySelector('.session-details').style.display = 'none';
+        }
+      }
     };
   });
   // Ice type
@@ -636,3 +654,15 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 });
+// Add form submit event listener for Enter key support
+const authForm = document.getElementById('auth-form');
+if (authForm) {
+    authForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('auth-email').value;
+        const password = document.getElementById('auth-password').value;
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        authMessage.textContent = error ? error.message : 'Logged in!';
+        checkAuth();
+    });
+}
