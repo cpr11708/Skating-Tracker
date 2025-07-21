@@ -248,9 +248,130 @@ function getWeekNumber(d) {
   return weekNo;
 }
 
+// --- Render Charts on Main Page ---
+function renderCharts() {
+  // 1. Lessons per coach
+  const coachCounts = {};
+  // 2. Focus area frequency
+  const allFocusAreas = [
+    'Edges', 'Turns', 'Twizzles', 'Lifts', 'Spins',
+    'Step Sequences', 'Pattern Dance', 'RD', 'FD', 'Sections',
+    'Story', 'Choreography', 'Skating Skills', 'Transitions', 'Interpretation',
+    'Performance', 'Timing', 'Musicality', 'Partnering', 'Connection',
+    'Warmup', 'Stretching', 'Speed', 'Footwork'
+  ];
+  const excludedFocus = ['Free-dance-run', 'Rhythm-dance-run'];
+  const sortedFocusAreas = [...allFocusAreas].sort((a, b) => a.localeCompare(b));
+  const focusCounts = {};
+  sortedFocusAreas.forEach(area => { focusCounts[area] = 0; });
+  const sessionsByDate = {};
+  trainingSessions.forEach(session => {
+    // Lessons per coach
+    if (session.type && session.type.includes('lesson') && Array.isArray(session.coaches)) {
+      session.coaches.forEach(coach => {
+        const coachName = coach.charAt(0).toUpperCase() + coach.slice(1);
+        coachCounts[coachName] = (coachCounts[coachName] || 0) + 1;
+      });
+    }
+    // Focus area frequency
+    if (Array.isArray(session.focus)) {
+      session.focus.forEach(focus => {
+        let focusName = focus.charAt(0).toUpperCase() + focus.slice(1);
+        if (focusName === 'Step-sequences') focusName = 'Step Sequences';
+        if (focusName === 'Pattern-dance') focusName = 'Pattern Dance';
+        if (focusName === 'Skating-skills') focusName = 'Skating Skills';
+        if (focusName === 'Free-dance-run') focusName = 'FD';
+        if (focusName === 'Rhythm-dance-run') focusName = 'RD';
+        if (!excludedFocus.includes(focusName) && sortedFocusAreas.includes(focusName)) {
+          focusCounts[focusName] = (focusCounts[focusName] || 0) + 1;
+        }
+      });
+    }
+    // Sessions over time
+    let date = session.date;
+    if (date && date.includes('-')) {
+      const [year, month, day] = date.split('-');
+      date = `${month}/${day}/${year}`;
+    }
+    sessionsByDate[date] = (sessionsByDate[date] || 0) + 1;
+  });
+  // Destroy existing charts if they exist
+  if (window._coachChart) window._coachChart.destroy();
+  if (window._focusChart) window._focusChart.destroy();
+  if (window._sessionsOverTimeChart) window._sessionsOverTimeChart.destroy();
+  // Lessons per coach
+  const coachChartElem = document.getElementById('coachChart');
+  if (coachChartElem) {
+    const coachChartCtx = coachChartElem.getContext('2d');
+    window._coachChart = new Chart(coachChartCtx, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(coachCounts),
+        datasets: [{
+          label: 'Lessons',
+          data: Object.values(coachCounts),
+          backgroundColor: '#3498db',
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, precision: 0 } }
+      }
+    });
+  }
+  // Focus area frequency
+  const focusChartElem = document.getElementById('focusChart');
+  if (focusChartElem) {
+    const focusChartCtx = focusChartElem.getContext('2d');
+    window._focusChart = new Chart(focusChartCtx, {
+      type: 'bar',
+      data: {
+        labels: sortedFocusAreas,
+        datasets: [{
+          label: 'Selections',
+          data: sortedFocusAreas.map(area => focusCounts[area]),
+          backgroundColor: '#2ecc71',
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, precision: 0 } }
+      }
+    });
+  }
+  // Sessions over time
+  const sortedDates = Object.keys(sessionsByDate).sort((a, b) => new Date(a) - new Date(b));
+  const sessionsOverTimeElem = document.getElementById('sessionsOverTimeChart');
+  if (sessionsOverTimeElem) {
+    const sessionsOverTimeCtx = sessionsOverTimeElem.getContext('2d');
+    window._sessionsOverTimeChart = new Chart(sessionsOverTimeCtx, {
+      type: 'line',
+      data: {
+        labels: sortedDates,
+        datasets: [{
+          label: 'Sessions',
+          data: sortedDates.map(date => sessionsByDate[date]),
+          fill: false,
+          borderColor: '#e67e22',
+          backgroundColor: '#e67e22',
+          tension: 0.2
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, precision: 0 } }
+      }
+    });
+  }
+}
+
 function updateUI() {
   updateSessionsList();
   updateStats();
+  renderCharts();
   initializeEventListeners();
 }
 
@@ -274,6 +395,7 @@ function initializeEventListeners() {
           document.querySelector('.session-details').style.display = 'none';
         }
       } else if (currentSessionType === 'lesson') {
+        // If switching to lesson, show coach section if ice type is selected, hide session details
         if (currentIceType) {
           document.querySelector('.coach-selection').style.display = 'block';
           document.querySelector('.session-details').style.display = 'none';
@@ -355,6 +477,32 @@ document.addEventListener('DOMContentLoaded', function() {
   const accountPasswordInput = document.getElementById('account-password-input');
   const accountFeedback = document.getElementById('account-feedback');
 
+  // Function to show feedback overlay
+  function showFeedback(message, type) {
+    // Clear existing content and any existing timeouts
+    accountFeedback.innerHTML = '';
+    if (window.feedbackTimeout) {
+      clearTimeout(window.feedbackTimeout);
+    }
+    
+    // Create message element
+    const messageElement = document.createElement('div');
+    messageElement.className = `feedback-message ${type}`;
+    messageElement.textContent = message;
+    messageElement.style.borderRadius = '16px';
+    
+    // Add to overlay
+    accountFeedback.appendChild(messageElement);
+    
+    // Show overlay
+    accountFeedback.classList.add('show');
+    
+    // Auto-hide after 5 seconds for all message types
+    window.feedbackTimeout = setTimeout(() => {
+      accountFeedback.classList.remove('show');
+    }, 5000);
+  }
+
   if (hamburgerBtn && dropdownMenu) {
     hamburgerBtn.onclick = function(e) {
       e.stopPropagation();
@@ -375,6 +523,9 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         accountModal.style.display = 'flex';
         dropdownMenu.classList.remove('show');
+        
+        // Prevent body scroll when modal is open
+        document.body.style.overflow = 'hidden';
       }
     });
   }
@@ -382,6 +533,13 @@ document.addEventListener('DOMContentLoaded', function() {
   if (closeAccountModal && accountModal) {
     closeAccountModal.onclick = function() {
       accountModal.style.display = 'none';
+      // Restore body scroll when modal is closed
+      document.body.style.overflow = '';
+      // Clear any feedback messages and timeouts
+      accountFeedback.classList.remove('show');
+      if (window.feedbackTimeout) {
+        clearTimeout(window.feedbackTimeout);
+      }
     };
   }
   // Log out from modal
@@ -390,25 +548,48 @@ document.addEventListener('DOMContentLoaded', function() {
       await supabase.auth.signOut();
       window.location.reload();
     };
+    // Ensure the button is always enabled and clickable
+    logoutBtn.disabled = false;
+    logoutBtn.style.pointerEvents = 'auto';
+  }
+
+  // Close modal when clicking outside
+  if (accountModal) {
+    accountModal.addEventListener('click', function(e) {
+      if (e.target === accountModal) {
+        accountModal.style.display = 'none';
+        // Restore body scroll when modal is closed
+        document.body.style.overflow = '';
+        // Clear any feedback messages and timeouts
+        accountFeedback.classList.remove('show');
+        if (window.feedbackTimeout) {
+          clearTimeout(window.feedbackTimeout);
+        }
+      }
+    });
   }
 
   if (changeEmailBtn && accountEmailInput && accountFeedback) {
     changeEmailBtn.onclick = async function() {
       const newEmail = accountEmailInput.value.trim();
       if (!newEmail) {
-        accountFeedback.textContent = 'Please enter a new email.';
+        showFeedback('Please enter a new email.', 'error');
         return;
       }
       changeEmailBtn.disabled = true;
-      accountFeedback.textContent = 'Updating email...';
+      showFeedback('Updating email...', 'info');
       const { error } = await supabase.auth.updateUser({ email: newEmail });
       if (error) {
-        accountFeedback.textContent = error.message;
+        showFeedback(error.message, 'error');
       } else {
-        accountFeedback.textContent = 'Email update requested. Check your new email for confirmation.';
+        showFeedback('Email update requested. Check your new email for confirmation.', 'success');
         accountEmailInput.value = '';
       }
       changeEmailBtn.disabled = false;
+      // Ensure logout button is enabled
+      if (logoutBtn) {
+        logoutBtn.disabled = false;
+      }
     };
   }
 
@@ -416,16 +597,16 @@ document.addEventListener('DOMContentLoaded', function() {
     changePasswordBtn.onclick = async function() {
       const newPassword = accountPasswordInput.value.trim();
       if (!newPassword || newPassword.length < 6) {
-        accountFeedback.textContent = 'Password must be at least 6 characters.';
+        showFeedback('Password must be at least 6 characters.', 'error');
         return;
       }
       changePasswordBtn.disabled = true;
-      accountFeedback.textContent = 'Updating password...';
+      showFeedback('Updating password...', 'info');
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) {
-        accountFeedback.textContent = error.message;
+        showFeedback(error.message, 'error');
       } else {
-        accountFeedback.textContent = 'Password updated!';
+        showFeedback('Password updated successfully!', 'success');
         accountPasswordInput.value = '';
       }
       changePasswordBtn.disabled = false;

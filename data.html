@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Session Data Table - Ice Dance Training Log</title>
+    <title>All Logged Sessions - Ice Dance Training Log</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         .data-table-container { max-width: 1000px; margin: 2rem auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); padding: 2rem; }
@@ -25,7 +25,7 @@
     <div class="data-table-container">
         <div class="sticky-card-top">
             <button class="back-btn" onclick="window.location.href='index.html'">← Back to Log</button>
-            <h2>Statistics</h2>
+            <h2>All Sessions</h2>
         </div>
         <table id="sessions-table">
             <thead>
@@ -44,20 +44,6 @@
                 <!-- Data will be inserted here -->
             </tbody>
         </table>
-        <div class="charts-container">
-            <div class="chart-block">
-                <h3>Lessons Per Coach</h3>
-                <canvas id="coachChart"></canvas>
-            </div>
-            <div class="chart-block">
-                <h3>Most Selected Focus Areas</h3>
-                <canvas id="focusChart"></canvas>
-            </div>
-            <div class="chart-block">
-                <h3>Sessions Over Time</h3>
-                <canvas id="sessionsOverTimeChart"></canvas>
-            </div>
-        </div>
     </div>
     <!-- Edit Session Modal (copied from index.html) -->
     <div id="edit-session-modal" class="modal" style="display:none;">
@@ -366,117 +352,6 @@
         
         // Attach edit button event handlers after rendering table
         attachEditButtons();
-        
-        // --- Chart Data Processing ---
-        // 1. Lessons per coach
-        const coachCounts = {};
-        // 2. Focus area frequency
-        // Define all valid focus areas (matching the UI, with display names)
-        const allFocusAreas = [
-            'Edges', 'Turns', 'Twizzles', 'Lifts', 'Spins',
-            'Step Sequences', 'Pattern Dance', 'RD', 'FD', 'Sections',
-            'Story', 'Choreography', 'Skating Skills', 'Transitions', 'Interpretation',
-            'Performance', 'Timing', 'Musicality', 'Partnering', 'Connection',
-            'Warmup', 'Stretching', 'Speed', 'Footwork'
-        ];
-        const excludedFocus = ['Free-dance-run', 'Rhythm-dance-run'];
-        // Sort focus areas alphabetically for the chart
-        const sortedFocusAreas = [...allFocusAreas].sort((a, b) => a.localeCompare(b));
-        // Focus area frequency
-        const focusCounts = {};
-        sortedFocusAreas.forEach(area => { focusCounts[area] = 0; });
-        // 3. Sessions over time (by date)
-        const sessionsByDate = {};
-        data.forEach(session => {
-            // Lessons per coach
-            if (session.type && session.type.includes('lesson') && Array.isArray(session.coaches)) {
-                session.coaches.forEach(coach => {
-                    const coachName = coach.charAt(0).toUpperCase() + coach.slice(1);
-                    coachCounts[coachName] = (coachCounts[coachName] || 0) + 1;
-                });
-            }
-            // Focus area frequency
-            if (Array.isArray(session.focus)) {
-                session.focus.forEach(focus => {
-                    let focusName = focus.charAt(0).toUpperCase() + focus.slice(1);
-                    // Normalize for display (e.g. step-sequences -> Step Sequences)
-                    if (focusName === 'Step-sequences') focusName = 'Step Sequences';
-                    if (focusName === 'Pattern-dance') focusName = 'Pattern Dance';
-                    if (focusName === 'Skating-skills') focusName = 'Skating Skills';
-                    if (focusName === 'Free-dance-run') focusName = 'FD';
-                    if (focusName === 'Rhythm-dance-run') focusName = 'RD';
-                    if (!excludedFocus.includes(focusName) && sortedFocusAreas.includes(focusName)) {
-                        focusCounts[focusName] = (focusCounts[focusName] || 0) + 1;
-                    }
-                });
-            }
-            // Sessions over time
-            let date = session.date;
-            if (date && date.includes('-')) {
-                const [year, month, day] = date.split('-');
-                date = `${month}/${day}/${year}`;
-            }
-            sessionsByDate[date] = (sessionsByDate[date] || 0) + 1;
-        });
-        // --- Render Charts ---
-        // Lessons per coach
-        const coachChartCtx = document.getElementById('coachChart').getContext('2d');
-        new Chart(coachChartCtx, {
-            type: 'bar',
-            data: {
-                labels: Object.keys(coachCounts),
-                datasets: [{
-                    label: 'Lessons',
-                    data: Object.values(coachCounts),
-                    backgroundColor: '#3498db',
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, precision: 0 } }
-            }
-        });
-        // Focus area frequency
-        const focusChartCtx = document.getElementById('focusChart').getContext('2d');
-        new Chart(focusChartCtx, {
-            type: 'bar',
-            data: {
-                labels: sortedFocusAreas,
-                datasets: [{
-                    label: 'Selections',
-                    data: sortedFocusAreas.map(area => focusCounts[area]),
-                    backgroundColor: '#2ecc71',
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, precision: 0 } }
-            }
-        });
-        // Sessions over time
-        const sortedDates = Object.keys(sessionsByDate).sort((a, b) => new Date(a) - new Date(b));
-        const sessionsOverTimeCtx = document.getElementById('sessionsOverTimeChart').getContext('2d');
-        new Chart(sessionsOverTimeCtx, {
-            type: 'line',
-            data: {
-                labels: sortedDates,
-                datasets: [{
-                    label: 'Sessions',
-                    data: sortedDates.map(date => sessionsByDate[date]),
-                    fill: false,
-                    borderColor: '#e67e22',
-                    backgroundColor: '#e67e22',
-                    tension: 0.2
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, precision: 0 } }
-            }
-        });
     }
     fetchSessions();
     </script>

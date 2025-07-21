@@ -20,7 +20,7 @@
                 <div id="dropdown-menu" class="dropdown-menu">
                     <button id="dropdown-account-btn" class="dropdown-link">Account</button>
                     <hr class="dropdown-divider">
-                    <a href="data.html" class="dropdown-link">Statistics</a>
+                    <a href="data.html" class="dropdown-link">All Sessions</a>
                 </div>
             </div>
         </div>
@@ -149,6 +149,20 @@
                     </div>
                 </div>
             </section>
+            <div class="charts-container">
+                <div class="chart-block">
+                    <h3>Lessons Per Coach</h3>
+                    <canvas id="coachChart"></canvas>
+                </div>
+                <div class="chart-block">
+                    <h3>Most Selected Focus Areas</h3>
+                    <canvas id="focusChart"></canvas>
+                </div>
+                <div class="chart-block">
+                    <h3>Sessions Over Time</h3>
+                    <canvas id="sessionsOverTimeChart"></canvas>
+                </div>
+            </div>
         </main>
 
         <footer style="text-align:center; margin-top: 2rem;">
@@ -233,23 +247,54 @@
     </div>
     <!-- Account Modal -->
     <div id="account-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <span class="close-modal" id="close-account-modal">&times;</span>
-            <h2>Account</h2>
-            <div class="form-group">
-                <label for="account-email-input">Change Email</label>
-                <input type="email" id="account-email-input" placeholder="New email" autocomplete="email" />
-                <button id="change-email-btn" class="submit-btn" type="button">Change Email</button>
+        <div class="modal-content account-modal-content">
+            <div class="account-modal-header">
+                <h2 class="account-modal-title">Account Settings</h2>
+                <span class="close-modal" id="close-account-modal">&times;</span>
             </div>
-            <div class="form-group">
-                <label for="account-password-input">Change Password</label>
-                <input type="password" id="account-password-input" placeholder="New password" autocomplete="new-password" />
-                <button id="change-password-btn" class="submit-btn" type="button">Change Password</button>
+            
+            <div class="account-sections">
+                <!-- Email Section -->
+                <div class="account-section">
+                    <div class="account-section-header">
+                        <h3>Change Email</h3>
+                    </div>
+                    <div class="account-section-content">
+                        <input type="email" id="account-email-input" placeholder="Enter new email address" autocomplete="email" class="account-input" />
+                        <button id="change-email-btn" class="account-btn primary-btn" type="button">
+                            Update Email
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Password Section -->
+                <div class="account-section">
+                    <div class="account-section-header">
+                        <h3>Change Password</h3>
+                    </div>
+                    <div class="account-section-content">
+                        <input type="password" id="account-password-input" placeholder="Enter new password" autocomplete="new-password" class="account-input" />
+                        <button id="change-password-btn" class="account-btn primary-btn" type="button">
+                            Update Password
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Logout Section -->
+                <div class="account-section logout-section">
+                    <div class="account-section-header">
+                        <h3>Sign Out</h3>
+                    </div>
+                    <div class="account-section-content">
+                        <p class="logout-description">Sign out of your account and return to the login screen.</p>
+                        <button id="logout-btn" class="account-btn danger-btn">
+                            Sign Out
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <button id="logout-btn" class="danger-btn">Log Out</button>
-            </div>
-            <div id="account-feedback" style="margin-top: 0.5rem; min-height: 1.5em; color: #1976d2; text-align: center;"></div>
+
+            <div id="account-feedback" class="account-feedback-simple"></div>
         </div>
     </div>
     <script>
@@ -280,5 +325,6 @@
         });
     </script>
     <script src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 </html> 
