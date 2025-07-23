@@ -9,17 +9,32 @@
         .data-table-container { max-width: 1000px; margin: 2rem auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); padding: 2rem 2rem 0 2rem; }
         table { width: 100%; border-collapse: collapse; margin-top: 0; }
         th, td { padding: 0.7rem 1rem; text-align: left; }
+        #sessions-table td { padding-left: 1rem; }
         td { border-bottom: 1px solid #eee; }
         tr { height: 60px; }
+        td { height: 60px; vertical-align: middle; overflow: hidden; }
         .notes-cell { max-width: 250px; }
         .notes-content { display: inline; }
-        .notes-cell .show-more-text {
+        .focus-cell { max-width: 200px; }
+        .focus-content { display: inline; }
+        
+        /* Column width classes to match header */
+        #sessions-table td:nth-child(1) { width: 12%; } /* Date */
+        #sessions-table td:nth-child(2) { width: 8%; } /* Type */
+        #sessions-table td:nth-child(3) { width: 15%; } /* Ice Type */
+        #sessions-table td:nth-child(4) { width: 12%; } /* Coach */
+        #sessions-table td:nth-child(5) { width: 20%; } /* Focus */
+        #sessions-table td:nth-child(6) { width: 8%; } /* Duration */
+        #sessions-table td:nth-child(7) { width: 25%; } /* Notes */
+        .notes-cell .show-more-text,
+        .focus-cell .show-more-text {
             color: #3498db;
             cursor: pointer;
             font-weight: 500;
             transition: color 0.2s ease;
         }
-        .notes-cell .show-more-text:hover {
+        .notes-cell .show-more-text:hover,
+        .focus-cell .show-more-text:hover {
             color: #1976d2;
             text-decoration: underline;
         }
@@ -55,14 +70,13 @@
             </div>
             <div style="display: flex; font-weight: 700; padding: 0.7rem 2rem; border-bottom: 1px solid #eee; margin: 0 -2rem 0 -2rem;">
                 
-                <div style="flex: 1; padding: 0 0.5rem;">Date</div>
-                <div style="flex: 1; padding: 0 0.5rem;">Session Type</div>
-                <div style="flex: 1; padding: 0 0.5rem;">Ice Type</div>
-                <div style="flex: 1; padding: 0 0.5rem;">Coach</div>
-                <div style="flex: 1; padding: 0 0.5rem;">Focus Areas</div>
-                <div style="flex: 1; padding: 0 0.5rem;">Duration (min)</div>
-                <div style="flex: 1; padding: 0 0.5rem;">Notes</div>
-                <div style="flex: 1; padding: 0 0.5rem;">Edit</div>
+                <div style="width: 12%; padding: 0.7rem 1rem;">Date</div>
+                <div style="width: 8%; padding: 0.7rem 1.4rem;">Type</div>
+                <div style="width: 15%; padding: 0.7rem 2.325rem;">Ice Type</div>
+                <div style="width: 6%; padding: 0.7rem 0.0000000000001rem;">Coach</div>
+                <div style="width: 19.5%; padding: 0.7rem 2.87rem;">Focus</div>
+                <div style="width: 8%; padding: 0.7rem 1rem;">Time</div>
+                <div style="width: 25%; padding: 0.7rem 0.95rem;">Notes</div>
             </div>
         </div>
         <table id="sessions-table">
@@ -365,9 +379,14 @@
             const duration = session.duration || '';
             const notes = session.notes || '';
             const tr = document.createElement('tr');
+            // Truncate focus areas for display
+            const truncatedFocus = focus.length > 35 ? focus.substring(0, 35) + '...' : focus;
+            const focusCell = focus.length > 35 ? 
+                `<td class="focus-cell"><span class="focus-content">${truncatedFocus} <span class="show-more-text" onclick="showFocusPopup('${focus.replace(/'/g, "\\'")}')">More</span></span></td>` :
+                `<td>${focus}</td>`;
             // Truncate notes for display
-            const truncatedNotes = notes.length > 55 ? notes.substring(0, 55) + '...' : notes;
-            const notesCell = notes.length > 55 ? 
+            const truncatedNotes = notes.length > 45 ? notes.substring(0, 45) + '...' : notes;
+            const notesCell = notes.length > 45 ? 
                 `<td class="notes-cell"><span class="notes-content">${truncatedNotes} <span class="show-more-text" onclick="showNotesPopup('${notes.replace(/'/g, "\\'")}')">More</span></span></td>` :
                 `<td>${notes}</td>`;
             
@@ -376,7 +395,7 @@
                 <td>${sessionType}</td>
                 <td>${iceType}</td>
                 <td>${coach}</td>
-                <td>${focus}</td>
+                ${focusCell}
                 <td>${duration}</td>
                 ${notesCell}
                 <td><button class="edit-session-btn" data-id="${session.id}">Edit</button></td>
@@ -495,6 +514,122 @@
     // Function to close notes popup
     function closeNotesPopup() {
         const popup = document.getElementById('notes-popup');
+        if (popup) {
+            popup.style.opacity = '0';
+            popup.querySelector('div').style.transform = 'translateY(20px)';
+            setTimeout(() => {
+                popup.style.display = 'none';
+            }, 300);
+        }
+    }
+    
+    // Function to show focus popup
+    function showFocusPopup(focus) {
+        // Create popup if it doesn't exist
+        let popup = document.getElementById('focus-popup');
+        if (!popup) {
+            popup = document.createElement('div');
+            popup.id = 'focus-popup';
+            popup.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            `;
+            
+            const popupContent = document.createElement('div');
+            popupContent.style.cssText = `
+                background: white;
+                padding: 2rem;
+                border-radius: 12px;
+                max-width: 500px;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                position: relative;
+                transform: translateY(20px);
+                transition: transform 0.3s ease;
+            `;
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '&times;';
+            closeBtn.style.cssText = `
+                position: absolute;
+                top: 10px;
+                right: 15px;
+                background: none;
+                border: none;
+                font-size: 24px;
+                cursor: pointer;
+                color: #666;
+                padding: 0;
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+            
+            const title = document.createElement('h3');
+            title.textContent = 'Focus Areas';
+            title.style.cssText = `
+                margin: 0 0 1rem 0;
+                color: #333;
+                font-size: 1.2rem;
+            `;
+            
+            const focusText = document.createElement('div');
+            focusText.id = 'popup-focus-text';
+            focusText.style.cssText = `
+                white-space: pre-wrap;
+                line-height: 1.5;
+                color: #555;
+                font-size: 0.95rem;
+            `;
+            
+            popupContent.appendChild(closeBtn);
+            popupContent.appendChild(title);
+            popupContent.appendChild(focusText);
+            popup.appendChild(popupContent);
+            document.body.appendChild(popup);
+            
+            // Close popup when clicking outside or on close button
+            popup.onclick = function(e) {
+                if (e.target === popup || e.target === closeBtn) {
+                    closeFocusPopup();
+                }
+            };
+            
+            // Close on escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeFocusPopup();
+                }
+            });
+        }
+        
+        // Update focus content
+        document.getElementById('popup-focus-text').textContent = focus;
+        
+        // Show popup with animation
+        popup.style.display = 'flex';
+        setTimeout(() => {
+            popup.style.opacity = '1';
+            popup.querySelector('div').style.transform = 'translateY(0)';
+        }, 10);
+    }
+    
+    // Function to close focus popup
+    function closeFocusPopup() {
+        const popup = document.getElementById('focus-popup');
         if (popup) {
             popup.style.opacity = '0';
             popup.querySelector('div').style.transform = 'translateY(20px)';
