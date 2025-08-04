@@ -161,6 +161,40 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4dm94d2RpZHR6cmFlZWVhaXdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc4NzY5ODMsImV4cCI6MjA2MzQ1Mjk4M30.ahn4_75BGDP8eqRtvheLhii_NQgqQMI9AStHbGqPXrU';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // Auto-expand textarea function
+    function autoExpandTextarea(textarea) {
+        // Use requestAnimationFrame to ensure DOM has updated
+        requestAnimationFrame(() => {
+            // Reset height to auto to get the correct scrollHeight
+            textarea.style.height = 'auto';
+            // Set the height to the scrollHeight to fit all content
+            const newHeight = textarea.scrollHeight;
+            textarea.style.height = newHeight + 'px';
+            
+            // Ensure minimum height
+            if (newHeight < 80) {
+                textarea.style.height = '80px';
+            }
+        });
+    }
+
+    // Initialize auto-expand for edit notes textarea
+    function initializeEditModalAutoExpand() {
+        const editNotes = document.getElementById('edit-notes');
+        if (editNotes && !editNotes.hasAttribute('data-auto-expand-initialized')) {
+            editNotes.setAttribute('data-auto-expand-initialized', 'true');
+            editNotes.addEventListener('input', function() {
+                autoExpandTextarea(this);
+            });
+            editNotes.addEventListener('keyup', function() {
+                autoExpandTextarea(this);
+            });
+            editNotes.addEventListener('keydown', function() {
+                autoExpandTextarea(this);
+            });
+        }
+    }
+
     let allSessions = [];
     let editingSessionId = null;
     let editingSessionType = null;
@@ -179,6 +213,9 @@
 
     // Set up modal event handlers after DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize auto-expand for edit modal
+        initializeEditModalAutoExpand();
+        
         // Modal focus area selection
         const editFocusGroup = document.getElementById('edit-focus-group');
         if (editFocusGroup) {
@@ -221,6 +258,12 @@
         editDate.value = session.date;
         editDuration.value = session.duration;
         editNotes.value = session.notes || '';
+        
+        // Initialize auto-expand for edit notes textarea
+        initializeEditModalAutoExpand();
+        if (editNotes) {
+            autoExpandTextarea(editNotes);
+        }
         
         // Focus areas
         editingSelectedFocus = Array.isArray(session.focus) ? [...session.focus] : [];

@@ -89,6 +89,8 @@ select[multiple] {
 textarea {
     resize: vertical;
     min-height: 80px;
+    overflow: hidden;
+    transition: height 0.1s ease;
 }
 
 .submit-btn {
@@ -835,6 +837,10 @@ h3 {
     border-radius: 12px !important;
     border: 1.5px solid #e0e0e0 !important;
     background: #f8f9fa !important;
+  }
+  textarea {
+    overflow: hidden !important;
+    transition: height 0.1s ease !important;
   }
   .button-group, .coach-button-group {
     flex-direction: column !important;

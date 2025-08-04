@@ -27,6 +27,70 @@ function getLocalDateString() {
   return `${year}-${month}-${day}`;
 }
 
+// Auto-expand textarea function
+function autoExpandTextarea(textarea) {
+  // Use requestAnimationFrame to ensure DOM has updated
+  requestAnimationFrame(() => {
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    // Set the height to the scrollHeight to fit all content
+    const newHeight = textarea.scrollHeight;
+    textarea.style.height = newHeight + 'px';
+    
+    // Ensure minimum height
+    if (newHeight < 80) {
+      textarea.style.height = '80px';
+    }
+  });
+}
+
+// Initialize auto-expand for textareas
+function initializeAutoExpand() {
+  const notesTextarea = document.getElementById('notes');
+  const editNotesTextarea = document.getElementById('edit-notes');
+  
+  if (notesTextarea) {
+    // Set initial height
+    autoExpandTextarea(notesTextarea);
+    
+    // Add input event listener for auto-expand
+    notesTextarea.addEventListener('input', function() {
+      autoExpandTextarea(this);
+    });
+  }
+  
+  if (editNotesTextarea) {
+    // Set initial height
+    autoExpandTextarea(editNotesTextarea);
+    
+    // Add multiple event listeners for auto-expand
+    editNotesTextarea.addEventListener('input', function() {
+      autoExpandTextarea(this);
+    });
+    editNotesTextarea.addEventListener('keyup', function() {
+      autoExpandTextarea(this);
+    });
+    editNotesTextarea.addEventListener('keydown', function() {
+      autoExpandTextarea(this);
+    });
+  }
+  
+  // Also add event listener for edit notes textarea when it's available
+  const editNotes = document.getElementById('edit-notes');
+  if (editNotes && !editNotes.hasAttribute('data-auto-expand-initialized')) {
+    editNotes.setAttribute('data-auto-expand-initialized', 'true');
+    editNotes.addEventListener('input', function() {
+      autoExpandTextarea(this);
+    });
+    editNotes.addEventListener('keyup', function() {
+      autoExpandTextarea(this);
+    });
+    editNotes.addEventListener('keydown', function() {
+      autoExpandTextarea(this);
+    });
+  }
+}
+
 // --- Auth Logic ---
 loginBtn.onclick = async () => {
   const email = document.getElementById('auth-email').value;
@@ -212,41 +276,10 @@ function updateStats() {
   const totalHours = trainingSessions.reduce((sum, session) => sum + session.duration / 60, 0);
   const weeklyHours = trainingSessions.filter(session => new Date(session.date) >= weekStart).reduce((sum, session) => sum + session.duration / 60, 0);
   const monthlyHours = trainingSessions.filter(session => new Date(session.date) >= monthStart).reduce((sum, session) => sum + session.duration / 60, 0);
-  const bestWeek = Math.max(...getWeeklyTotals(trainingSessions), 0);
-  const bestMonth = Math.max(...getMonthlyTotals(trainingSessions), 0);
-  const bestWeekElem = document.getElementById('home-best-week');
-  const bestMonthElem = document.getElementById('home-best-month');
-  if (bestWeekElem) bestWeekElem.textContent = bestWeek.toFixed(1);
-  if (bestMonthElem) bestMonthElem.textContent = bestMonth.toFixed(1);
+
 }
 
-function getWeeklyTotals(sessions) {
-  const weekMap = {};
-  sessions.forEach(session => {
-    const d = new Date(session.date);
-    const year = d.getFullYear();
-    const week = getWeekNumber(d);
-    const key = `${year}-W${week}`;
-    weekMap[key] = (weekMap[key] || 0) + (session.duration / 60);
-  });
-  return Object.values(weekMap);
-}
-function getMonthlyTotals(sessions) {
-  const monthMap = {};
-  sessions.forEach(session => {
-    const d = new Date(session.date);
-    const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
-    monthMap[key] = (monthMap[key] || 0) + (session.duration / 60);
-  });
-  return Object.values(monthMap);
-}
-function getWeekNumber(d) {
-  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
-  return weekNo;
-}
+
 
 // --- Render Charts on Main Page ---
 function renderCharts() {
@@ -373,6 +406,7 @@ function updateUI() {
   updateStats();
   renderCharts();
   initializeEventListeners();
+  initializeAutoExpand(); // Call initializeAutoExpand here
 }
 
 // --- Event Listeners for Form Buttons ---
@@ -664,6 +698,10 @@ sessionsList.addEventListener('click', function(e) {
   editDate.value = session.date;
   editDuration.value = session.duration;
   editNotes.value = session.notes || '';
+  // Initialize auto-expand for edit notes textarea
+  if (editNotes) {
+    autoExpandTextarea(editNotes);
+  }
   // Focus areas
   editingSelectedFocus = Array.isArray(session.focus) ? [...session.focus] : [];
   editFocusGroup.querySelectorAll('.focus-btn').forEach(btn => {
