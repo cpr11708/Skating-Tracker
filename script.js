@@ -1241,6 +1241,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Account button now opens modal instead of dropdown
+  
+  // Toggle functionality removed - form is always visible
+  
   // Close account modal
   if (closeAccountModal && accountModal) {
     closeAccountModal.onclick = function() {

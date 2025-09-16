@@ -161,7 +161,7 @@
                 </div>
             </div>
 
-            <!-- Right Column - Recent Sessions & Quick Charts -->
+            <!-- Right Column - Recent Sessions -->
             <div class="dashboard-right">
                 <div class="card dashboard-card">
                     <div class="card-header">
@@ -172,11 +172,14 @@
                         <!-- Sessions will be added here dynamically -->
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <div class="card dashboard-card">
-                    <div class="card-header">
-                        <h2>Quick Stats</h2>
-                    </div>
+        <!-- Bottom Section - Charts -->
+        <div class="dashboard-bottom">
+            <div class="charts-container">
+                <div class="chart-block">
+                    <h3>Quick Stats</h3>
                     <div class="quick-charts">
                         <div class="mini-chart">
                             <h4>This Week's Activity</h4>
@@ -188,12 +191,10 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Bottom Row - Full Charts -->
-        <div class="dashboard-bottom">
-            <div class="charts-container">
+                <div class="chart-block">
+                    <h3>Sessions Over Time</h3>
+                    <canvas id="sessionsOverTimeChart"></canvas>
+                </div>
                 <div class="chart-block">
                     <h3>Lessons Per Coach</h3>
                     <canvas id="coachChart"></canvas>
@@ -201,10 +202,6 @@
                 <div class="chart-block">
                     <h3>Most Selected Focus Areas</h3>
                     <canvas id="focusChart"></canvas>
-                </div>
-                <div class="chart-block">
-                    <h3>Sessions Over Time</h3>
-                    <canvas id="sessionsOverTimeChart"></canvas>
                 </div>
             </div>
         </div>
