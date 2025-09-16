@@ -418,7 +418,18 @@
             const iceType = typeParts[0] === 'on' ? 'On Ice' : (typeParts[0] === 'off' ? 'Off Ice' : '');
             const sessionType = typeParts[2] ? (typeParts[2].charAt(0).toUpperCase() + typeParts[2].slice(1)) : '';
             const coach = session.coaches && session.coaches.length ? session.coaches.map(c => c.charAt(0).toUpperCase() + c.slice(1)).join(', ') : '';
-            const focus = Array.isArray(session.focus) ? session.focus.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(', ') : '';
+            const focus = Array.isArray(session.focus) ? session.focus.map(f => {
+                let displayName = f.charAt(0).toUpperCase() + f.slice(1);
+                // Remove dashes and format properly
+                displayName = displayName.replace(/-/g, ' ');
+                // Handle specific cases
+                if (displayName === 'Free dance run') displayName = 'Free Dance Run';
+                if (displayName === 'Rhythm dance run') displayName = 'Rhythm Dance Run';
+                if (displayName === 'Step sequences') displayName = 'Step Sequences';
+                if (displayName === 'Pattern dance') displayName = 'Pattern Dance';
+                if (displayName === 'Skating skills') displayName = 'Skating Skills';
+                return displayName;
+            }).join(', ') : '';
             const duration = session.duration || '';
             const notes = session.notes || '';
             const tr = document.createElement('tr');
